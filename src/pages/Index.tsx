@@ -51,7 +51,7 @@ import { ServiceCard } from "@/components/ServiceCard";
 const steps = [
   { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
   { id: 2, title: "Basis-Analyse", icon: Bot, description: "KI-Analyse" },
-  { id: 3, title: "Kostenanalyse", icon: FileText, description: "TCO & Report" },
+  { id: 3, title: "Summary", icon: FileText, description: "Wiki-Export" },
 ];
 
 
@@ -700,74 +700,163 @@ const Index = () => {
                 disabled={!analysisComplete}
                 className="gap-2 nagarro-gradient text-background nagarro-glow"
               >
-                {analysisComplete ? "Zur Kostenanalyse" : "Analyse läuft..."}
+                {analysisComplete ? "Zur Summary" : "Analyse läuft..."}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Report */}
+        {/* Step 3: Summary */}
         {currentStep === 3 && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">Kostenanalyse</h2>
+              <h2 className="text-3xl font-semibold mb-2">Summary</h2>
               <p className="text-muted-foreground">
-                TCO-Prognose für {selectedService?.displayName || "den Service"}
+                Zusammenfassung für Wiki-Export
               </p>
             </div>
 
+            {/* Service-Überblick Card */}
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center nagarro-glow">
-                    <FileText className="w-5 h-5 text-background" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Database className="w-5 h-5 text-primary" />
                   </div>
-                  {selectedService?.displayName || "SAP Service"} - Basis-Analyse
+                  Service-Überblick
                 </CardTitle>
-                <CardDescription>
-                  Generiert am {new Date().toLocaleDateString("de-DE")}
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 rounded-lg bg-muted/30 space-y-4">
-                  <h4 className="font-medium">Zusammenfassung</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Der vollständige Report enthält detaillierte Informationen zu:
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                    <li>Berechtigungen und Security-Anforderungen</li>
-                    <li>Integration und Konnektivität</li>
-                    <li>Monitoring und Operations</li>
-                    <li>Lifecycle Management</li>
-                  </ul>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Service Name</p>
+                    <p className="font-medium">{selectedService?.displayName || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Technische ID</p>
+                    <code className="text-sm bg-muted px-2 py-1 rounded">{selectedService?.technicalId || "—"}</code>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground mb-1">Beschreibung</p>
+                    <p className="text-sm text-muted-foreground">{selectedService?.description || "Keine Beschreibung verfügbar"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Kategorie</p>
+                    <Badge variant="outline">{selectedService?.category || "Service"}</Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Service Plans</p>
+                    <p className="text-sm">{(selectedServiceDetails || serviceDetails)?.servicePlans?.length || 0} verfügbar</p>
+                  </div>
                 </div>
-
-                {/* Analysis Results Summary */}
-                {analysisComplete && fullBasisResult?.success && fullBasisResult.data && (
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Analyse-Ergebnis</h4>
-                    <div className="p-4 rounded-lg bg-muted/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Bot className="w-4 h-4 text-primary" />
-                        <h5 className="font-medium text-sm">Vollständige Basis-Analyse</h5>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-4">
-                        {fullBasisResult.data.content.substring(0, 300)}...
-                      </p>
-                      {fullBasisResult.data.citations && fullBasisResult.data.citations.length > 0 && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {fullBasisResult.data.citations.length} Quellen verwendet
-                        </p>
-                      )}
+                
+                {/* Links Summary */}
+                {(selectedServiceDetails || serviceDetails)?.links && (
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-2">Dokumentationslinks</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(
+                        ((selectedServiceDetails || serviceDetails)?.links || [])
+                          .filter(l => l.value?.startsWith('http'))
+                          .reduce((acc, l) => {
+                            const c = l.classification || 'Other';
+                            acc[c] = (acc[c] || 0) + 1;
+                            return acc;
+                          }, {} as Record<string, number>)
+                      ).map(([classification, count]) => (
+                        <Badge key={classification} variant="secondary" className="text-xs">
+                          {classification} ({count})
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
 
+            {/* Basis-Analyse Findings Card */}
+            {analysisComplete && fullBasisResult?.success && fullBasisResult.data && (
+              <Card className="border-border/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center nagarro-glow">
+                      <Bot className="w-5 h-5 text-background" />
+                    </div>
+                    Basis-Analyse Findings
+                  </CardTitle>
+                  <CardDescription>
+                    KI-gestützte Analyse vom {new Date().toLocaleDateString("de-DE")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ScrollArea className="h-[350px] rounded-md border border-border/30 p-4">
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <div className="text-sm whitespace-pre-wrap">
+                        {fullBasisResult.data.content}
+                      </div>
+                    </div>
+                  </ScrollArea>
+                  
+                  {/* Citations */}
+                  {fullBasisResult.data.citations && fullBasisResult.data.citations.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground font-medium">
+                        Verwendete Quellen ({fullBasisResult.data.citations.length}):
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {fullBasisResult.data.citations.map((citation, idx) => (
+                          <Badge 
+                            key={idx} 
+                            variant="outline" 
+                            className="text-xs cursor-pointer hover:bg-muted"
+                            onClick={() => window.open(citation, '_blank')}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            {(() => {
+                              try {
+                                return new URL(citation).hostname;
+                              } catch {
+                                return citation.substring(0, 30);
+                              }
+                            })()}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {fullBasisResult.data.model && (
+                    <p className="text-xs text-muted-foreground">
+                      Analysiert mit: {fullBasisResult.data.model}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Export Actions */}
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  Wiki-Export
+                </CardTitle>
+                <CardDescription>
+                  Exportiere die Zusammenfassung für Confluence oder andere Wikis
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="flex gap-4">
                   <Button variant="outline" className="flex-1 gap-2">
                     <FileText className="w-4 h-4" />
-                    Als PDF exportieren
+                    Confluence XHTML
+                  </Button>
+                  <Button variant="outline" className="flex-1 gap-2">
+                    <FileText className="w-4 h-4" />
+                    Markdown
                   </Button>
                   <Button variant="outline" className="flex-1 gap-2">
                     <ExternalLink className="w-4 h-4" />
@@ -785,6 +874,7 @@ const Index = () => {
                 onClick={() => {
                   setCurrentStep(1);
                   setSelectedService(null);
+                  setSelectedServiceDetails(null);
                   setFullBasisResult(null);
                   setAnalysisProgress(0);
                   setAnalysisComplete(false);
