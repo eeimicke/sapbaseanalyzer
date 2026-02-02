@@ -96,8 +96,9 @@ export async function fetchServiceInventory(): Promise<ServiceInventoryItem[]> {
     throw new Error(`Fehler beim Laden der Services: ${response.status} ${response.statusText}`);
   }
   
-  const data: ServiceInventory = await response.json();
-  return data.services;
+  // API gibt direkt ein Array zurück, nicht { services: [...] }
+  const data: ServiceInventoryItem[] = await response.json();
+  return data;
 }
 
 /**
