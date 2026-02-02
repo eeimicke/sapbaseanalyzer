@@ -1189,9 +1189,14 @@ const Index = () => {
                                 
                                 {/* Error Message */}
                                 {result && !result.success && result.error && (
-                                  <p className="text-xs text-destructive mt-2">
-                                    Fehler: {result.error}
-                                  </p>
+                                  <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                                    <p className="text-xs text-destructive">
+                                      {result.error.includes("SCRAPE_ALL_ENGINES_FAILED") 
+                                        ? "⚠️ Website blockiert Scraping - diese Seite kann nicht automatisch gelesen werden"
+                                        : `Fehler: ${result.error.substring(0, 100)}...`
+                                      }
+                                    </p>
+                                  </div>
                                 )}
                                 
                                 {/* Content Preview */}
