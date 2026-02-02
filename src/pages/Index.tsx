@@ -116,7 +116,7 @@ const Index = () => {
     isLoading: isLoadingDetails,
     isError: isDetailsError,
     error: detailsError,
-  } = useServiceDetails(selectedService?.technicalId ?? null);
+  } = useServiceDetails(selectedService?.fileName ?? null);
 
   // Discovery Center URL aus den echten Service-Details extrahieren
   const discoveryUrl = useMemo(() => {

@@ -26,15 +26,16 @@ export function useServiceInventory() {
 
 /**
  * Hook zum Laden der Detail-Informationen eines spezifischen Services
- * Wird nur aufgerufen wenn eine technicalId übergeben wird
+ * Wird nur aufgerufen wenn ein fileName übergeben wird
  * 
  * Enthält: Links (kategorisiert), servicePlans, Regionen, Support-Komponenten
+ * HINWEIS: Nutzt fileName statt technicalId, da die Groß-/Kleinschreibung unterschiedlich sein kann
  */
-export function useServiceDetails(technicalId: string | null) {
+export function useServiceDetails(fileName: string | null) {
   return useQuery<ServiceDetails, Error>({
-    queryKey: ["sap-service-details", technicalId],
-    queryFn: () => fetchServiceDetails(technicalId!),
-    enabled: !!technicalId, // Nur laden wenn technicalId vorhanden
+    queryKey: ["sap-service-details", fileName],
+    queryFn: () => fetchServiceDetails(fileName!),
+    enabled: !!fileName, // Nur laden wenn fileName vorhanden
     staleTime: 1000 * 60 * 30,
     gcTime: 1000 * 60 * 60,
     retry: 2,

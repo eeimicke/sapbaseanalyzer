@@ -105,12 +105,15 @@ export async function fetchServiceInventory(): Promise<ServiceInventoryItem[]> {
 /**
  * Lädt die Detail-Informationen eines spezifischen Services
  * Enthält Links, servicePlans, Regionen und Support-Komponenten
+ * HINWEIS: Nutzt fileName statt technicalId, da die Groß-/Kleinschreibung unterschiedlich sein kann
  */
-export async function fetchServiceDetails(technicalId: string): Promise<ServiceDetails> {
-  const response = await fetch(`${BASE_URL}/developer/${technicalId}.json`);
+export async function fetchServiceDetails(fileName: string): Promise<ServiceDetails> {
+  // Stelle sicher dass .json am Ende ist
+  const file = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
+  const response = await fetch(`${BASE_URL}/developer/${file}`);
   
   if (!response.ok) {
-    throw new Error(`Fehler beim Laden der Service-Details für ${technicalId}: ${response.status}`);
+    throw new Error(`Fehler beim Laden der Service-Details für ${fileName}: ${response.status}`);
   }
   
   return response.json();
