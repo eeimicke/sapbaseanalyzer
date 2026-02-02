@@ -492,6 +492,20 @@ const Index = () => {
                                 );
                               })}
                           </div>
+                          
+                          {/* Button zum Übergeben an Map Discovery */}
+                          <Button
+                            size="sm"
+                            className="w-full mt-3 gap-2 nagarro-gradient text-background"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentStep(2);
+                            }}
+                          >
+                            <Map className="w-4 h-4" />
+                            {serviceDetails.links.filter(l => l.value?.startsWith("http")).length} Links an Map Discovery übergeben
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground py-2">
