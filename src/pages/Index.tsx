@@ -12,7 +12,6 @@ import {
   Search, 
   Database, 
   Bot, 
-  DollarSign, 
   FileText,
   ChevronRight,
   Check,
@@ -46,8 +45,7 @@ import { ServiceCard } from "@/components/ServiceCard";
 const steps = [
   { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
   { id: 2, title: "Basis-Analyse", icon: Bot, description: "KI-Analyse" },
-  { id: 3, title: "Kosten", icon: DollarSign, description: "TCO berechnen" },
-  { id: 4, title: "Report", icon: FileText, description: "Übersicht" },
+  { id: 3, title: "Report", icon: FileText, description: "Übersicht" },
 ];
 
 const basisCategories: Array<{
@@ -619,77 +617,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Step 3: Cost Analysis */}
+        {/* Step 3: Report */}
         {currentStep === 3 && (
-          <div className="space-y-8 max-w-4xl mx-auto">
-            <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">Kostenanalyse</h2>
-              <p className="text-muted-foreground">
-                TCO-Berechnung für {selectedService?.displayName || "den Service"}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="border-border/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Lizenzkosten (p.a.)</CardDescription>
-                  <CardTitle className="text-2xl text-primary">€ --,--</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Basierend auf Service-Plans</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Basis-Aufwand</CardDescription>
-                  <CardTitle className="text-2xl text-primary">-- PT</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Initiale Einrichtung</p>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardHeader className="pb-2">
-                  <CardDescription>Laufender Betrieb</CardDescription>
-                  <CardTitle className="text-2xl text-primary">-- PT/Monat</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Monitoring & Support</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="border-border/50">
-              <CardHeader>
-                <CardTitle>Kostenaufschlüsselung</CardTitle>
-                <CardDescription>Details werden nach der Analyse berechnet</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  <p className="text-sm">Diagramm wird nach der vollständigen Analyse angezeigt</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(2)} className="gap-2">
-                Zurück
-              </Button>
-              <Button
-                onClick={() => setCurrentStep(4)}
-                className="gap-2 nagarro-gradient text-background nagarro-glow"
-              >
-                Zum Report
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Report */}
-        {currentStep === 4 && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="text-center mb-6">
               <h2 className="text-3xl font-semibold mb-2">Analyse-Report</h2>
@@ -721,7 +650,6 @@ const Index = () => {
                     <li>Integration und Konnektivität</li>
                     <li>Monitoring und Operations</li>
                     <li>Lifecycle Management</li>
-                    <li>Kostenaufschlüsselung und TCO</li>
                   </ul>
                 </div>
 
@@ -762,7 +690,7 @@ const Index = () => {
             </Card>
 
             <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(3)} className="gap-2">
+              <Button variant="outline" onClick={() => setCurrentStep(2)} className="gap-2">
                 Zurück
               </Button>
               <Button
