@@ -45,7 +45,7 @@ import {
   type ServiceInventoryItem,
   type ServiceDetails
 } from "@/lib/sap-services";
-import { perplexityApi, type AnalysisCategoryUI, type AnalysisResponse, type ServiceLink } from "@/lib/api/perplexity";
+import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
 import { ServiceCard } from "@/components/ServiceCard";
 
 const steps = [
@@ -54,17 +54,6 @@ const steps = [
   { id: 3, title: "Report", icon: FileText, description: "Übersicht" },
 ];
 
-const basisCategories: Array<{
-  id: AnalysisCategoryUI;
-  icon: typeof Shield;
-  name: string;
-  color: string;
-}> = [
-  { id: 'security', icon: Shield, name: "Berechtigungen & Security", color: "text-red-400" },
-  { id: 'integration', icon: Network, name: "Integration & Konnektivität", color: "text-blue-400" },
-  { id: 'monitoring', icon: Activity, name: "Monitoring & Operations", color: "text-primary" },
-  { id: 'lifecycle', icon: RefreshCw, name: "Lifecycle Management", color: "text-purple-400" },
-];
 
 // Icon-Mapping für Link-Classifications
 const classificationIcons: Record<string, typeof FileCode> = {
@@ -102,12 +91,6 @@ const Index = () => {
   // Analysis States (Step 2)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [analysisResults, setAnalysisResults] = useState<Record<AnalysisCategoryUI, AnalysisResponse | null>>({
-    security: null,
-    integration: null,
-    monitoring: null,
-    lifecycle: null,
-  });
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [currentAnalysisCategory, setCurrentAnalysisCategory] = useState<string | null>(null);
 
@@ -173,64 +156,58 @@ const Index = () => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
-  // Start Perplexity AI Analysis
+  // Full-Basis Analyse State
+  const [fullBasisResult, setFullBasisResult] = useState<AnalysisResponse | null>(null);
+
+  // Start Full-Basis Analysis (einheitlich mit DB-Prompt + vollständigen Service-Metadaten)
   const startAnalysis = async () => {
     const details = selectedServiceDetails || serviceDetails;
     if (!selectedService || !details) return;
 
+    // Prüfen ob Basis-Prompt geladen ist
+    if (!prompt?.prompt_text) {
+      toast({
+        title: "Basis-Prompt fehlt",
+        description: "Der Analyse-Prompt konnte nicht aus der Datenbank geladen werden.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setAnalysisProgress(0);
-    setAnalysisResults({
-      security: null,
-      integration: null,
-      monitoring: null,
-      lifecycle: null,
-    });
+    setFullBasisResult(null);
     setAnalysisComplete(false);
-
-    // Prepare service links for Perplexity
-    const serviceLinks: ServiceLink[] = (details.links || [])
-      .filter(l => l.value?.startsWith('http'))
-      .map(l => ({
-        classification: l.classification || 'Other',
-        text: l.text || l.classification || 'Link',
-        value: l.value,
-      }));
-
-    const categories: AnalysisCategoryUI[] = ['security', 'integration', 'monitoring', 'lifecycle'];
-    let completedCount = 0;
+    setCurrentAnalysisCategory('full-basis');
 
     try {
-      // Run all analyses in parallel
-      const promises = categories.map(async (category) => {
-        setCurrentAnalysisCategory(category);
-        
-        const result = await perplexityApi.analyze(
-          selectedService.displayName,
-          selectedService.description || '',
-          serviceLinks,
-          category
-        );
+      setAnalysisProgress(25);
+      
+      // Eine einzige Full-Basis Analyse mit DB-Prompt + vollständigen Service-Metadaten
+      const result = await perplexityApi.analyzeWithFullContext(
+        selectedService.displayName,
+        selectedService.description || '',
+        details,
+        prompt.prompt_text
+      );
 
-        completedCount++;
-        setAnalysisProgress(Math.round((completedCount / categories.length) * 100));
-        
-        setAnalysisResults(prev => ({
-          ...prev,
-          [category]: result,
-        }));
-
-        return { category, result };
-      });
-
-      await Promise.all(promises);
-
+      setAnalysisProgress(100);
+      setFullBasisResult(result);
       setAnalysisComplete(true);
       setCurrentAnalysisCategory(null);
-      toast({
-        title: "Analyse abgeschlossen",
-        description: "Alle 4 Kategorien wurden erfolgreich analysiert.",
-      });
+      
+      if (result.success) {
+        toast({
+          title: "Analyse abgeschlossen",
+          description: "Die vollständige Basis-Analyse wurde erfolgreich durchgeführt.",
+        });
+      } else {
+        toast({
+          title: "Analyse Fehler",
+          description: result.error || "Unbekannter Fehler",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Analyse Fehler",
@@ -598,8 +575,8 @@ const Index = () => {
               <div className="max-w-md mx-auto text-center">
                 <Progress value={analysisProgress} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-2">
-                  {currentAnalysisCategory 
-                    ? `Analysiere: ${basisCategories.find(c => c.id === currentAnalysisCategory)?.name || currentAnalysisCategory}`
+                  {currentAnalysisCategory === 'full-basis'
+                    ? 'Perplexity AI führt vollständige Basis-Analyse durch...'
                     : `${analysisProgress}% abgeschlossen`
                   }
                 </p>
@@ -618,132 +595,113 @@ const Index = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {basisCategories.map((category) => {
-                const result = analysisResults[category.id];
-                const isCurrentlyAnalyzing = isAnalyzing && currentAnalysisCategory === category.id;
-                const hasResult = result !== null;
-                const isSuccess = hasResult && result.success;
-                const hasError = hasResult && !result.success;
+            {/* Full-Basis Analysis Result */}
+            <Card className={`border-border/50 transition-all ${fullBasisResult?.success ? 'border-primary/30' : ''}`}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-lg">
+                  <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center nagarro-glow">
+                    <Bot className="w-5 h-5 text-background" />
+                  </div>
+                  <span className="flex-1">Vollständige Basis-Analyse</span>
+                  {fullBasisResult?.success && <Check className="w-5 h-5 text-primary" />}
+                  {fullBasisResult && !fullBasisResult.success && <AlertCircle className="w-5 h-5 text-destructive" />}
+                </CardTitle>
+                <CardDescription>
+                  KI-gestützte Analyse basierend auf dem Basis-Prompt und allen Service-Metadaten
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {/* Loading State */}
+                {isAnalyzing && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-muted-foreground">Perplexity AI recherchiert im Web...</span>
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full animate-pulse" />
+                      <Skeleton className="h-4 w-5/6 animate-pulse" />
+                      <Skeleton className="h-4 w-4/6 animate-pulse" />
+                      <Skeleton className="h-4 w-full animate-pulse" />
+                      <Skeleton className="h-4 w-3/4 animate-pulse" />
+                    </div>
+                  </div>
+                )}
 
-                return (
-                  <Card key={category.id} className={`border-border/50 transition-all ${isSuccess ? 'border-primary/30' : ''}`}>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-3 text-lg">
-                        <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center`}>
-                          <category.icon className={`w-5 h-5 ${category.color}`} />
-                        </div>
-                        <span className="flex-1">{category.name}</span>
-                        {isSuccess && <Check className="w-5 h-5 text-primary" />}
-                        {hasError && <AlertCircle className="w-5 h-5 text-destructive" />}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {/* Loading State */}
-                      {(!hasResult && !isCurrentlyAnalyzing && isAnalyzing) && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
-                            <span className="text-muted-foreground">Wartend...</span>
-                          </div>
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-5/6" />
-                            <Skeleton className="h-4 w-4/6" />
-                          </div>
-                        </div>
-                      )}
+                {/* Error State */}
+                {fullBasisResult && !fullBasisResult.success && (
+                  <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                    <p className="text-sm text-destructive">
+                      Fehler: {fullBasisResult.error || 'Unbekannter Fehler'}
+                    </p>
+                  </div>
+                )}
 
-                      {/* Currently Analyzing */}
-                      {isCurrentlyAnalyzing && (
-                        <div className="space-y-4">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                            <span className="text-muted-foreground">Perplexity AI recherchiert...</span>
-                          </div>
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-full animate-pulse" />
-                            <Skeleton className="h-4 w-5/6 animate-pulse" />
-                            <Skeleton className="h-4 w-4/6 animate-pulse" />
-                          </div>
+                {/* Success State - Show Analysis */}
+                {fullBasisResult?.success && fullBasisResult.data && (
+                  <div className="space-y-4">
+                    <ScrollArea className="h-[400px] rounded-md border border-border/30 p-4">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="text-sm whitespace-pre-wrap">
+                          {fullBasisResult.data.content}
                         </div>
-                      )}
-
-                      {/* Error State */}
-                      {hasError && (
-                        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
-                          <p className="text-sm text-destructive">
-                            Fehler: {result.error || 'Unbekannter Fehler'}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Success State - Show Analysis */}
-                      {isSuccess && result.data && (
-                        <div className="space-y-4">
-                          <ScrollArea className="h-[200px] rounded-md border border-border/30 p-3">
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                              <div className="text-sm whitespace-pre-wrap">
-                                {result.data.content}
-                              </div>
-                            </div>
-                          </ScrollArea>
-                          
-                          {/* Citations */}
-                          {result.data.citations && result.data.citations.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-xs text-muted-foreground font-medium">
-                                Quellen ({result.data.citations.length}):
-                              </p>
-                              <div className="flex flex-wrap gap-2">
-                                {result.data.citations.slice(0, 3).map((citation, idx) => (
-                                  <Badge 
-                                    key={idx} 
-                                    variant="outline" 
-                                    className="text-xs cursor-pointer hover:bg-muted"
-                                    onClick={() => window.open(citation, '_blank')}
-                                  >
-                                    <ExternalLink className="w-3 h-3 mr-1" />
-                                    {new URL(citation).hostname}
-                                  </Badge>
-                                ))}
-                                {result.data.citations.length > 3 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    +{result.data.citations.length - 3} mehr
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
+                      </div>
+                    </ScrollArea>
+                    
+                    {/* Citations */}
+                    {fullBasisResult.data.citations && fullBasisResult.data.citations.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground font-medium">
+                          Quellen ({fullBasisResult.data.citations.length}):
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {fullBasisResult.data.citations.slice(0, 5).map((citation, idx) => (
+                            <Badge 
+                              key={idx} 
+                              variant="outline" 
+                              className="text-xs cursor-pointer hover:bg-muted"
+                              onClick={() => window.open(citation, '_blank')}
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              {new URL(citation).hostname}
+                            </Badge>
+                          ))}
+                          {fullBasisResult.data.citations.length > 5 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{fullBasisResult.data.citations.length - 5} mehr
+                            </Badge>
                           )}
                         </div>
-                      )}
+                      </div>
+                    )}
+                    
+                    {/* Model info */}
+                    {fullBasisResult.data.model && (
+                      <p className="text-xs text-muted-foreground">
+                        Modell: {fullBasisResult.data.model}
+                      </p>
+                    )}
+                  </div>
+                )}
 
-                      {/* Initial waiting state */}
-                      {!hasResult && !isAnalyzing && (
-                        <div className="text-center py-4 text-muted-foreground text-sm">
-                          Analyse wird gestartet...
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                {/* Initial waiting state */}
+                {!fullBasisResult && !isAnalyzing && (
+                  <div className="text-center py-4 text-muted-foreground text-sm">
+                    Analyse wird gestartet...
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             <div className="flex justify-between pt-4">
               <Button 
                 variant="outline" 
                 onClick={() => {
-                  setAnalysisResults({
-                    security: null,
-                    integration: null,
-                    monitoring: null,
-                    lifecycle: null,
-                  });
+                  setFullBasisResult(null);
                   setAnalysisProgress(0);
                   setAnalysisComplete(false);
                   setCurrentStep(1);
-                }} 
+                }}
                 className="gap-2"
                 disabled={isAnalyzing}
               >
@@ -798,25 +756,23 @@ const Index = () => {
                 </div>
 
                 {/* Analysis Results Summary */}
-                {analysisComplete && (
+                {analysisComplete && fullBasisResult?.success && fullBasisResult.data && (
                   <div className="space-y-4">
-                    <h4 className="font-medium">Analyse-Ergebnisse</h4>
-                    {basisCategories.map((category) => {
-                      const result = analysisResults[category.id];
-                      if (!result?.success || !result.data) return null;
-                      
-                      return (
-                        <div key={category.id} className="p-4 rounded-lg bg-muted/30">
-                          <div className="flex items-center gap-2 mb-2">
-                            <category.icon className={`w-4 h-4 ${category.color}`} />
-                            <h5 className="font-medium text-sm">{category.name}</h5>
-                          </div>
-                          <p className="text-xs text-muted-foreground line-clamp-3">
-                            {result.data.content.substring(0, 200)}...
-                          </p>
-                        </div>
-                      );
-                    })}
+                    <h4 className="font-medium">Analyse-Ergebnis</h4>
+                    <div className="p-4 rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Bot className="w-4 h-4 text-primary" />
+                        <h5 className="font-medium text-sm">Vollständige Basis-Analyse</h5>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-4">
+                        {fullBasisResult.data.content.substring(0, 300)}...
+                      </p>
+                      {fullBasisResult.data.citations && fullBasisResult.data.citations.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {fullBasisResult.data.citations.length} Quellen verwendet
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -841,12 +797,7 @@ const Index = () => {
                 onClick={() => {
                   setCurrentStep(1);
                   setSelectedService(null);
-                  setAnalysisResults({
-                    security: null,
-                    integration: null,
-                    monitoring: null,
-                    lifecycle: null,
-                  });
+                  setFullBasisResult(null);
                   setAnalysisProgress(0);
                   setAnalysisComplete(false);
                 }}
