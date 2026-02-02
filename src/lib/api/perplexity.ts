@@ -15,27 +15,28 @@ export type AnalysisResponse = {
   data?: AnalysisResult;
 };
 
-export type CrawledContent = {
-  url: string;
-  markdown: string;
-  title?: string;
+export type ServiceLink = {
+  classification: string;
+  text: string;
+  value: string;
 };
 
 export const perplexityApi = {
   /**
-   * Analyze crawled content for a specific SAP Basis category
+   * Analyze a SAP service for a specific category using Perplexity AI
+   * Perplexity will search the web using the provided links as starting points
    */
   async analyze(
     serviceName: string,
     serviceDescription: string,
-    crawledContent: CrawledContent[],
+    serviceLinks: ServiceLink[],
     category: AnalysisCategory
   ): Promise<AnalysisResponse> {
     const { data, error } = await supabase.functions.invoke('perplexity-analyze', {
       body: {
         serviceName,
         serviceDescription,
-        crawledContent,
+        serviceLinks,
         category,
       },
     });
@@ -44,35 +45,5 @@ export const perplexityApi = {
       return { success: false, error: error.message };
     }
     return data;
-  },
-
-  /**
-   * Analyze all 4 categories in parallel
-   */
-  async analyzeAll(
-    serviceName: string,
-    serviceDescription: string,
-    crawledContent: CrawledContent[],
-    onProgress?: (completed: number, total: number, category: AnalysisCategory, result: AnalysisResponse) => void
-  ): Promise<Map<AnalysisCategory, AnalysisResponse>> {
-    const categories: AnalysisCategory[] = ['security', 'integration', 'monitoring', 'lifecycle'];
-    const results = new Map<AnalysisCategory, AnalysisResponse>();
-
-    // Run all analyses in parallel
-    const promises = categories.map(async (category, index) => {
-      const result = await this.analyze(serviceName, serviceDescription, crawledContent, category);
-      results.set(category, result);
-      
-      if (onProgress) {
-        // Calculate how many are done by counting non-pending results
-        const completed = Array.from(results.values()).length;
-        onProgress(completed, categories.length, category, result);
-      }
-      
-      return { category, result };
-    });
-
-    await Promise.all(promises);
-    return results;
   },
 };
