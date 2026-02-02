@@ -33,29 +33,24 @@ import {
   AlertCircle,
   Globe
 } from "lucide-react";
-import { useServiceInventory } from "@/hooks/use-sap-services";
+import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
 import { 
   filterServices, 
   extractCategories, 
   buildDiscoveryCenterFallbackUrl,
-  type ServiceInventoryItem 
+  linkClassifications,
+  type ServiceInventoryItem,
+  type ServiceLink
 } from "@/lib/sap-services";
 
-// Mock discovered URLs für Demo (wird später durch echte Daten ersetzt)
-const mockDiscoveredUrls = [
-  { url: "https://discovery-center.cloud.sap/serviceCatalog/integration-suite", type: "main", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite", type: "docs", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/what-is-sap-integration-suite", type: "docs", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/initial-setup", type: "setup", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/configuring-user-access", type: "security", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/monitoring-and-troubleshooting", type: "operations", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/connectivity", type: "integration", selected: true },
-  { url: "https://community.sap.com/topics/integration-suite", type: "community", selected: false },
-  { url: "https://blogs.sap.com/tags/73554900100800002451/", type: "blog", selected: false },
-  { url: "https://api.sap.com/package/IntegrationSuite", type: "api", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/pricing", type: "pricing", selected: true },
-  { url: "https://help.sap.com/docs/integration-suite/sap-integration-suite/security-guide", type: "security", selected: true },
-];
+// Typ für UI-Links mit Selection-State
+interface DiscoveredUrl {
+  url: string;
+  classification: string;
+  text: string;
+  type: string;
+  selected: boolean;
+}
 
 const steps = [
   { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
@@ -73,30 +68,28 @@ const basisCategories = [
   { icon: RefreshCw, name: "Lifecycle Management", color: "text-purple-400" },
 ];
 
-const urlTypeIcons: Record<string, typeof FileCode> = {
-  main: Database,
-  docs: BookOpen,
-  setup: Settings,
-  security: Shield,
-  operations: Activity,
-  integration: Network,
-  community: Link2,
-  blog: FileText,
-  api: FileCode,
-  pricing: DollarSign,
+// Icon-Mapping für Link-Classifications aus der API
+const classificationIcons: Record<string, typeof FileCode> = {
+  "Discovery Center": Database,
+  "Documentation": BookOpen,
+  "SAP Help Portal": BookOpen,
+  "Tutorial": BookOpen,
+  "API Hub": FileCode,
+  "Support": Shield,
+  "Marketing": Globe,
+  "Other": Link2,
 };
 
-const urlTypeLabels: Record<string, string> = {
-  main: "Hauptseite",
-  docs: "Dokumentation",
-  setup: "Einrichtung",
-  security: "Sicherheit",
-  operations: "Betrieb",
-  integration: "Integration",
-  community: "Community",
-  blog: "Blog",
-  api: "API",
-  pricing: "Preise",
+// Label-Mapping für Link-Classifications
+const classificationLabels: Record<string, string> = {
+  "Discovery Center": "Discovery Center",
+  "Documentation": "Dokumentation",
+  "SAP Help Portal": "SAP Help Portal",
+  "Tutorial": "Tutorial",
+  "API Hub": "API Hub",
+  "Support": "Support",
+  "Marketing": "Marketing",
+  "Other": "Sonstige",
 };
 
 // Hauptkategorien werden dynamisch aus den Daten extrahiert
@@ -107,9 +100,8 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDark, setIsDark] = useState(true);
-  const [discoveredUrls, setDiscoveredUrls] = useState(mockDiscoveredUrls);
+  const [discoveredUrls, setDiscoveredUrls] = useState<DiscoveredUrl[]>([]);
   const [mapProgress, setMapProgress] = useState(0);
-  const [isMapping, setIsMapping] = useState(false);
 
   // Live-Daten vom SAP GitHub Repository laden
   const { 
@@ -119,6 +111,15 @@ const Index = () => {
     error: servicesError,
     refetch: refetchServices 
   } = useServiceInventory();
+
+  // Service-Details laden wenn ein Service ausgewählt ist UND wir auf Schritt 2 sind
+  const {
+    data: serviceDetails,
+    isLoading: isLoadingDetails,
+    isError: isDetailsError,
+    error: detailsError,
+    refetch: refetchDetails
+  } = useServiceDetails(currentStep >= 2 ? selectedService?.technicalId ?? null : null);
 
   // Gefilterte Services basierend auf Suche und Kategorie
   const filteredServices = useMemo(() => {
@@ -132,31 +133,65 @@ const Index = () => {
     return extractCategories(services);
   }, [services]);
 
+  // Links nach Classification gruppieren für die Anzeige
+  const groupedLinks = useMemo(() => {
+    const groups: Record<string, DiscoveredUrl[]> = {};
+    for (const url of discoveredUrls) {
+      const classification = url.classification || "Other";
+      if (!groups[classification]) {
+        groups[classification] = [];
+      }
+      groups[classification].push(url);
+    }
+    // Nach Priorität sortieren
+    const sorted = Object.entries(groups).sort((a, b) => {
+      const priorityA = linkClassifications[a[0] as keyof typeof linkClassifications]?.priority ?? 99;
+      const priorityB = linkClassifications[b[0] as keyof typeof linkClassifications]?.priority ?? 99;
+      return priorityA - priorityB;
+    });
+    return Object.fromEntries(sorted);
+  }, [discoveredUrls]);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
   }, [isDark]);
 
-  // Simulate mapping progress
+  // Wenn Service-Details geladen werden, URLs konvertieren
   useEffect(() => {
-    if (currentStep === 2 && isMapping) {
+    if (serviceDetails?.links) {
+      const urls: DiscoveredUrl[] = serviceDetails.links
+        .filter(link => link.value && link.value.startsWith("http"))
+        .map(link => ({
+          url: link.value,
+          classification: link.classification || "Other",
+          text: link.text || link.value,
+          type: link.type || "Link",
+          selected: ["Discovery Center", "Documentation", "SAP Help Portal", "API Hub"].includes(link.classification)
+        }));
+      setDiscoveredUrls(urls);
+      // Progress auf 100 setzen wenn Links geladen
+      if (urls.length > 0) {
+        setMapProgress(100);
+      }
+    }
+  }, [serviceDetails]);
+
+  // Progress-Animation beim Laden der Details
+  useEffect(() => {
+    if (currentStep === 2 && isLoadingDetails) {
+      setMapProgress(0);
       const interval = setInterval(() => {
         setMapProgress((prev) => {
-          if (prev >= 100) {
-            setIsMapping(false);
+          if (prev >= 90) {
             clearInterval(interval);
-            return 100;
+            return 90; // Stoppt bei 90%, wird auf 100% gesetzt wenn Daten da sind
           }
-          return prev + 10;
+          return prev + 15;
         });
-      }, 300);
+      }, 200);
       return () => clearInterval(interval);
     }
-  }, [currentStep, isMapping]);
-
-  const startMapping = () => {
-    setIsMapping(true);
-    setMapProgress(0);
-  };
+  }, [currentStep, isLoadingDetails]);
 
   const toggleUrl = (index: number) => {
     setDiscoveredUrls((prev) =>
@@ -418,7 +453,7 @@ const Index = () => {
                 <Button 
                   onClick={() => {
                     setCurrentStep(2);
-                    startMapping();
+                    // Details werden automatisch geladen durch useServiceDetails Hook
                   }} 
                   className="gap-2 h-12 px-8 nagarro-gradient text-background font-medium nagarro-glow"
                 >
@@ -444,52 +479,79 @@ const Index = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center">
-                    <Map className="w-5 h-5 text-background" />
+                    {isLoadingDetails ? (
+                      <Loader2 className="w-5 h-5 text-background animate-spin" />
+                    ) : (
+                      <Map className="w-5 h-5 text-background" />
+                    )}
                   </div>
-                  {mapProgress < 100 ? "URLs werden entdeckt..." : "URLs gefunden"}
+                  {isLoadingDetails 
+                    ? "Links werden geladen..." 
+                    : isDetailsError 
+                    ? "Fehler beim Laden" 
+                    : `${discoveredUrls.length} Links gefunden`}
                 </CardTitle>
                 <CardDescription>
-                  Firecrawl Map scannt die SAP Discovery Center Seite und verknüpfte Dokumentation
+                  Daten werden direkt vom SAP GitHub Repository geladen ({selectedService?.technicalId}.json)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Progress */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Mapping Fortschritt</span>
-                    <span className="text-primary font-medium">{mapProgress}%</span>
+                {/* Error State */}
+                {isDetailsError && (
+                  <div className="flex items-center gap-4 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
+                    <AlertCircle className="w-6 h-6 text-destructive" />
+                    <div className="flex-1">
+                      <p className="font-medium text-destructive">Fehler beim Laden der Links</p>
+                      <p className="text-sm text-muted-foreground">{detailsError?.message}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => refetchDetails()}>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Erneut versuchen
+                    </Button>
                   </div>
-                  <Progress value={mapProgress} className="h-2" />
-                </div>
+                )}
+
+                {/* Progress */}
+                {!isDetailsError && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Lade Fortschritt</span>
+                      <span className="text-primary font-medium">{mapProgress}%</span>
+                    </div>
+                    <Progress value={mapProgress} className="h-2" />
+                  </div>
+                )}
 
                 {/* URL Stats */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-muted/50 text-center">
-                    <p className="text-2xl font-semibold text-primary">{discoveredUrls.length}</p>
-                    <p className="text-xs text-muted-foreground">URLs gefunden</p>
+                {!isDetailsError && mapProgress >= 100 && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-muted/50 text-center">
+                      <p className="text-2xl font-semibold text-primary">{discoveredUrls.length}</p>
+                      <p className="text-xs text-muted-foreground">Links gefunden</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/50 text-center">
+                      <p className="text-2xl font-semibold text-primary">{selectedUrlCount}</p>
+                      <p className="text-xs text-muted-foreground">Ausgewählt</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/50 text-center">
+                      <p className="text-2xl font-semibold text-primary">
+                        {Object.keys(groupedLinks).length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Kategorien</p>
+                    </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-muted/50 text-center">
-                    <p className="text-2xl font-semibold text-primary">{selectedUrlCount}</p>
-                    <p className="text-xs text-muted-foreground">Ausgewählt</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-muted/50 text-center">
-                    <p className="text-2xl font-semibold text-primary">
-                      {new Set(discoveredUrls.map((u) => u.type)).size}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Kategorien</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Discovered URLs List */}
-            {mapProgress >= 100 && (
+            {/* Discovered URLs List - Grouped by Classification */}
+            {mapProgress >= 100 && discoveredUrls.length > 0 && (
               <Card className="border-border/50">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Link2 className="w-5 h-5 text-primary" />
-                      Entdeckte URLs
+                      Entdeckte Links nach Kategorie
                     </CardTitle>
                     <div className="flex gap-2">
                       <Button
@@ -513,61 +575,97 @@ const Index = () => {
                     </div>
                   </div>
                   <CardDescription>
-                    Wählen Sie die URLs aus, die für die Basis-Analyse gecrawlt werden sollen
+                    Wählen Sie die Links aus, die für die Basis-Analyse gecrawlt werden sollen
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[400px] pr-4">
-                    <div className="space-y-2">
-                      {discoveredUrls.map((urlItem, index) => {
-                        const IconComponent = urlTypeIcons[urlItem.type] || Link2;
+                  <ScrollArea className="h-[500px] pr-4">
+                    <div className="space-y-6">
+                      {Object.entries(groupedLinks).map(([classification, links]) => {
+                        const IconComponent = classificationIcons[classification] || Link2;
+                        const selectedInGroup = links.filter(l => l.selected).length;
+                        
                         return (
-                          <div
-                            key={index}
-                            className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                              urlItem.selected
-                                ? "border-primary/50 bg-primary/5"
-                                : "border-border/50 hover:border-primary/30"
-                            }`}
-                            onClick={() => toggleUrl(index)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <Checkbox
-                                checked={urlItem.selected}
-                                onCheckedChange={() => toggleUrl(index)}
-                              />
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                  urlItem.selected ? "bg-primary/20" : "bg-muted"
-                                }`}
-                              >
-                                <IconComponent
-                                  className={`w-4 h-4 ${
-                                    urlItem.selected ? "text-primary" : "text-muted-foreground"
-                                  }`}
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {urlTypeLabels[urlItem.type] || urlItem.type}
-                                  </Badge>
+                          <div key={classification} className="space-y-3">
+                            {/* Category Header */}
+                            <div className="flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-sm py-2 z-10">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                  <IconComponent className="w-4 h-4 text-primary" />
                                 </div>
-                                <p className="text-sm text-muted-foreground truncate">
-                                  {urlItem.url}
-                                </p>
+                                <div>
+                                  <h4 className="font-medium">
+                                    {classificationLabels[classification] || classification}
+                                  </h4>
+                                  <p className="text-xs text-muted-foreground">
+                                    {selectedInGroup} von {links.length} ausgewählt
+                                  </p>
+                                </div>
                               </div>
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(urlItem.url, "_blank");
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => {
+                                  const allSelected = links.every(l => l.selected);
+                                  setDiscoveredUrls(prev => 
+                                    prev.map(u => 
+                                      u.classification === classification 
+                                        ? { ...u, selected: !allSelected }
+                                        : u
+                                    )
+                                  );
                                 }}
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                {links.every(l => l.selected) ? "Keine" : "Alle"}
                               </Button>
+                            </div>
+                            
+                            {/* Links in Category */}
+                            <div className="space-y-2 pl-2">
+                              {links.map((urlItem) => {
+                                const globalIndex = discoveredUrls.findIndex(u => u.url === urlItem.url);
+                                return (
+                                  <div
+                                    key={urlItem.url}
+                                    className={`p-3 rounded-lg border transition-all cursor-pointer ${
+                                      urlItem.selected
+                                        ? "border-primary/50 bg-primary/5"
+                                        : "border-border/50 hover:border-primary/30"
+                                    }`}
+                                    onClick={() => toggleUrl(globalIndex)}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Checkbox
+                                        checked={urlItem.selected}
+                                        onCheckedChange={() => toggleUrl(globalIndex)}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate mb-0.5">
+                                          {urlItem.text || urlItem.url}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground truncate">
+                                          {urlItem.url}
+                                        </p>
+                                      </div>
+                                      <Badge variant="outline" className="text-xs shrink-0">
+                                        {urlItem.type}
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(urlItem.url, "_blank");
+                                        }}
+                                      >
+                                        <ExternalLink className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );

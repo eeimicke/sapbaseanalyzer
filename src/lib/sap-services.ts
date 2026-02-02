@@ -21,6 +21,7 @@ export interface ServiceLink {
   value: string;
   classification: string;
   type: string;
+  text?: string;
 }
 
 export interface ServicePlan {
