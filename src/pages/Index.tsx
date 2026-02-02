@@ -452,38 +452,6 @@ const Index = () => {
                       {service.description}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    {/* Discovery Center Link - zeigt Loader wenn ausgewählt und lädt, echten Link wenn geladen */}
-                    {selectedService?.technicalId === service.technicalId ? (
-                      isLoadingDetails ? (
-                        <div className="flex items-center justify-center gap-2 h-9 text-muted-foreground">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span className="text-sm">Lade Links...</span>
-                        </div>
-                      ) : discoveryUrl ? (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="w-full gap-2 text-primary hover:text-primary/80"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(discoveryUrl, "_blank");
-                          }}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          SAP Discovery Center
-                        </Button>
-                      ) : (
-                        <p className="text-center text-xs text-muted-foreground py-2">
-                          Kein Discovery Center Link verfügbar
-                        </p>
-                      )
-                    ) : (
-                      <p className="text-center text-xs text-muted-foreground py-2">
-                        Klicken zum Auswählen
-                      </p>
-                    )}
-                  </CardContent>
                 </Card>
               ))}
 
