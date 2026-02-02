@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Github, ExternalLink, BookOpen, Database, FileCode, Shield, Globe, Link2, Loader2, Sparkles } from "lucide-react";
-import { type ServiceInventoryItem } from "@/lib/sap-services";
+import { Button } from "@/components/ui/button";
+import { Check, Github, ExternalLink, BookOpen, Database, FileCode, Shield, Globe, Link2, Loader2, Sparkles, ChevronRight } from "lucide-react";
+import { type ServiceInventoryItem, type ServiceDetails } from "@/lib/sap-services";
 import { useServiceDetails } from "@/hooks/use-sap-services";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,9 +23,10 @@ interface ServiceCardProps {
   service: ServiceInventoryItem;
   isSelected: boolean;
   onSelect: (service: ServiceInventoryItem) => void;
+  onProceedToAnalysis?: (service: ServiceInventoryItem, details: ServiceDetails) => void;
 }
 
-export function ServiceCard({ service, isSelected, onSelect }: ServiceCardProps) {
+export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis }: ServiceCardProps) {
   const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.technicalId);
   const [quickSummary, setQuickSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
@@ -230,6 +232,22 @@ export function ServiceCard({ service, isSelected, onSelect }: ServiceCardProps)
               })
             ) : (
               <p className="text-xs text-muted-foreground">Keine Links verfügbar</p>
+            )}
+
+            {/* Proceed Button */}
+            {serviceDetails && onProceedToAnalysis && (
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onProceedToAnalysis(service, serviceDetails);
+                }}
+                className="w-full mt-3 gap-2 nagarro-gradient text-background nagarro-glow"
+                size="sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                Basis-Analyse starten
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             )}
           </div>
         )}

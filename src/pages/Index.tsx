@@ -37,7 +37,8 @@ import {
   filterServices, 
   extractCategories, 
   linkClassifications,
-  type ServiceInventoryItem
+  type ServiceInventoryItem,
+  type ServiceDetails
 } from "@/lib/sap-services";
 import { perplexityApi, type AnalysisCategory, type AnalysisResponse, type ServiceLink } from "@/lib/api/perplexity";
 import { ServiceCard } from "@/components/ServiceCard";
@@ -77,6 +78,7 @@ const Index = () => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<ServiceDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDark, setIsDark] = useState(true);
@@ -92,6 +94,13 @@ const Index = () => {
   });
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [currentAnalysisCategory, setCurrentAnalysisCategory] = useState<string | null>(null);
+
+  // Handler für "Basis-Analyse starten" Button in ServiceCard
+  const handleProceedToAnalysis = (service: ServiceInventoryItem, details: ServiceDetails) => {
+    setSelectedService(service);
+    setSelectedServiceDetails(details);
+    setCurrentStep(2);
+  };
 
   // Live-Daten vom SAP GitHub Repository laden
   const { 
@@ -150,7 +159,8 @@ const Index = () => {
 
   // Start Perplexity AI Analysis
   const startAnalysis = async () => {
-    if (!selectedService || !serviceDetails) return;
+    const details = selectedServiceDetails || serviceDetails;
+    if (!selectedService || !details) return;
 
     setIsAnalyzing(true);
     setAnalysisProgress(0);
@@ -163,7 +173,7 @@ const Index = () => {
     setAnalysisComplete(false);
 
     // Prepare service links for Perplexity
-    const serviceLinks: ServiceLink[] = (serviceDetails.links || [])
+    const serviceLinks: ServiceLink[] = (details.links || [])
       .filter(l => l.value?.startsWith('http'))
       .map(l => ({
         classification: l.classification || 'Other',
@@ -218,10 +228,11 @@ const Index = () => {
 
   // Auto-start analysis when entering Step 2 with service details loaded
   useEffect(() => {
-    if (currentStep === 2 && !isAnalyzing && !analysisComplete && serviceDetails && !isLoadingDetails) {
+    const details = selectedServiceDetails || serviceDetails;
+    if (currentStep === 2 && !isAnalyzing && !analysisComplete && details && !isLoadingDetails) {
       startAnalysis();
     }
-  }, [currentStep, serviceDetails, isLoadingDetails]);
+  }, [currentStep, serviceDetails, selectedServiceDetails, isLoadingDetails]);
 
   // Skeleton-Komponente für Ladezustand
   const ServiceCardSkeleton = () => (
@@ -401,6 +412,7 @@ const Index = () => {
                   service={service}
                   isSelected={selectedService?.technicalId === service.technicalId}
                   onSelect={setSelectedService}
+                  onProceedToAnalysis={handleProceedToAnalysis}
                 />
               ))}
 
