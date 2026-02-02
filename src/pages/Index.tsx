@@ -373,7 +373,7 @@ const Index = () => {
                   <TabsList className="w-full h-auto flex-wrap gap-1.5 bg-muted/30 p-1.5 rounded-xl">
                     <TabsTrigger 
                       value="all" 
-                      className="text-xs px-4 py-2 rounded-lg transition-all data-[state=active]:nagarro-gradient data-[state=active]:text-background data-[state=active]:shadow-lg data-[state=active]:nagarro-glow data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/50"
+                      className="text-xs px-4 py-2 rounded-lg transition-all data-[state=active]:nagarro-gradient data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-lg data-[state=active]:nagarro-glow data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/50"
                     >
                       Alle ({categoryCounts.all || 0})
                     </TabsTrigger>
@@ -381,7 +381,7 @@ const Index = () => {
                       <TabsTrigger 
                         key={cat} 
                         value={cat}
-                        className="text-xs px-4 py-2 rounded-lg transition-all data-[state=active]:nagarro-gradient data-[state=active]:text-background data-[state=active]:shadow-lg data-[state=active]:nagarro-glow data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/50"
+                        className="text-xs px-4 py-2 rounded-lg transition-all data-[state=active]:nagarro-gradient data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-lg data-[state=active]:nagarro-glow data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/50"
                       >
                         {cat} ({categoryCounts[cat] || 0})
                       </TabsTrigger>
