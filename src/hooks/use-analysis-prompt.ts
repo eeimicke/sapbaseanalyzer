@@ -29,7 +29,7 @@ export function useAnalysisPrompt() {
         .select("*")
         .eq("is_active", true)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error("Error loading prompt:", fetchError);
