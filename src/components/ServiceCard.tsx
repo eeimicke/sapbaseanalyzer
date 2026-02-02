@@ -27,13 +27,13 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis }: ServiceCardProps) {
-  const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.technicalId);
+  const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.fileName);
   const [quickSummary, setQuickSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   
-  // GitHub Repository URL für diesen Service
-  const githubUrl = `https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${service.technicalId}.json`;
+  // GitHub Repository URL für diesen Service (nutzt fileName statt technicalId)
+  const githubUrl = `https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${service.fileName}`;
 
   // Gruppiere Links nach Classification
   const groupedLinks = serviceDetails?.links?.reduce((acc, link) => {
