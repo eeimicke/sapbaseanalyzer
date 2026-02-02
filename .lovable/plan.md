@@ -1,131 +1,146 @@
 
-# Implementierung: Schritt 1 - SAP BTP Service-Auswahl
+# Analyse-Prompt Zusammensetzung: Basis-Prompt + Service-Daten
 
-## Ziel
+## Konzept
 
-Der erste Schritt der Anwendung wird so umgebaut, dass er **echte Service-Daten** vom SAP GitHub Repository laedt, anstatt statische Mock-Daten zu verwenden. Der Benutzer kann dann einen Service auswaehlen und sieht detaillierte Informationen inkl. kategorisierter Links.
+Der finale Analyse-Prompt wird aus zwei Teilen zusammengesetzt:
 
----
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  FINALER ANALYSE-PROMPT                                         │
+├─────────────────────────────────────────────────────────────────┤
+│  1. BASIS-PROMPT (aus Datenbank)                                │
+│     - Der editierbare SAP Basis-Administrator Prompt            │
+│     - Definiert die Analyse-Perspektive und JSON-Ausgabeformat  │
+│                                                                 │
+│  2. SERVICE-DATEN (aus JSON-Metadaten)                          │
+│     - Service-Name und Beschreibung                             │
+│     - Alle Links (Discovery Center, Dokumentation, etc.)        │
+│     - Service-Plans mit Regionen                                │
+│     - Support-Komponenten                                       │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-## Was passiert auf der Seite (Benutzer-Sicht)
+## UI-Darstellung in Schritt 2
 
-### Beim Laden der Seite:
-1. Ein **Lade-Indikator** erscheint mit der Nachricht "Services werden geladen..."
-2. Im Hintergrund werden ueber **200 SAP BTP Services** vom GitHub Repository abgerufen
-3. Nach dem Laden werden die Services in einer **Karten-Ansicht** angezeigt
+Die UI wird beide Prompt-Teile übersichtlich anzeigen:
 
-### Bei der Service-Auswahl:
-1. **Suchfeld** - Der Benutzer kann nach Service-Namen oder Kategorie suchen
-2. **Kategorie-Filter** - Tabs fuer "Alle", "Integration", "AI", "Data", "Security", "Extension"
-3. **Service-Karten** zeigen:
-   - Service-Name und Beschreibung
-   - Kategorie-Badge (z.B. "Integration", "AI")
-   - Link zum SAP Discovery Center (externe Seite)
-4. **Klick auf eine Karte** waehlt den Service aus (gruener Rahmen)
-5. **Weiter-Button** erscheint und laedt beim Klick die Detail-Informationen des Services
-
-### Nach Service-Auswahl:
-1. Ein kurzer **Ladevorgang** holt die detaillierten Informationen (servicePlans, Links, etc.)
-2. Der Benutzer gelangt zum naechsten Schritt (Map Discovery)
-
----
+1. **Basis-Prompt Card** (bereits vorhanden, editierbar)
+2. **NEU: Service-Daten Card** (read-only, zeigt die übergebenen JSON-Infos)
 
 ## Technische Umsetzung
 
-### 1. Neue Dateien erstellen
+### 1. UI-Erweiterung in Index.tsx (Schritt 2)
 
-**`src/lib/sap-services.ts`** - Service-API-Logik
-- Funktion `fetchServiceInventory()`: Laedt die Service-Liste von GitHub
-- Funktion `fetchServiceDetails(technicalId)`: Laedt Detail-JSON eines Services
-- TypeScript-Typen fuer Service-Daten
+Neue Card unterhalb der editierbaren Prompt-Card:
 
-**`src/hooks/use-sap-services.ts`** - React Hook
-- Verwendet TanStack Query fuer Caching und Loading-States
-- `useServiceInventory()`: Hook fuer Service-Liste
-- `useServiceDetails(id)`: Hook fuer Detail-Daten
-
-### 2. Bestehende Dateien anpassen
-
-**`src/pages/Index.tsx`** - Hauptseite
-- Mock-Daten entfernen und durch API-Hooks ersetzen
-- Lade-Zustaende mit Skeleton-Komponenten anzeigen
-- Fehlerbehandlung hinzufuegen falls API nicht erreichbar
-- Service-Karten mit echten Daten befuellen
-
----
-
-## Datenfluss
-
-```text
-+------------------+     +-------------------+     +------------------+
-|  GitHub API      | --> |  use-sap-services | --> |  Index.tsx       |
-|  inventory.json  |     |  (TanStack Query) |     |  Service Cards   |
-+------------------+     +-------------------+     +------------------+
-         |
-         v
-+-------------------+
-| developer/{id}.json
-| (bei Auswahl)     |
-+-------------------+
+```tsx
+{/* Service-Daten als Analyse-Kontext */}
+<Card className="border-border/50">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2 text-base">
+      <Database className="w-4 h-4 text-primary" />
+      Service-Kontext (aus Metadaten)
+    </CardTitle>
+    <CardDescription>
+      Diese Informationen werden automatisch an die KI übergeben.
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <ScrollArea className="h-[200px]">
+      <pre className="text-xs font-mono bg-muted/30 p-4 rounded">
+        {JSON.stringify(serviceMetadata, null, 2)}
+      </pre>
+    </ScrollArea>
+  </CardContent>
+</Card>
 ```
 
----
+### 2. Perplexity Edge Function Anpassung
 
-## API-Endpunkte
+Die Edge Function wird erweitert, um:
 
-| Endpunkt | Zweck |
-|----------|-------|
-| `https://raw.githubusercontent.com/SAP-samples/btp-service-metadata/main/v1/inventory.json` | Service-Katalog (200+ Services) |
-| `https://raw.githubusercontent.com/SAP-samples/btp-service-metadata/main/v1/developer/{technicalId}.json` | Detail-Informationen pro Service |
+1. Den **Basis-Prompt aus der Datenbank** zu laden (anstatt hartcodierte Prompts zu verwenden)
+2. Die vollständigen **Service-Metadaten** als strukturierten Kontext zu formatieren
+3. Beides zu einem finalen Prompt zusammenzuführen
 
----
+**Neues Request-Format:**
 
-## Neue Funktionen
+```typescript
+interface AnalysisRequest {
+  serviceName: string;
+  serviceDescription: string;
+  serviceLinks: ServiceLink[];
+  servicePlans?: ServicePlan[];           // NEU
+  supportComponents?: SupportComponent[]; // NEU
+  category: 'security' | 'integration' | 'monitoring' | 'lifecycle' | 'quick-summary' | 'full-basis';
+  basePrompt?: string;                    // NEU - optionaler Override aus DB
+}
+```
 
-### Service-Filter nach Kategorien
-- Alle Services werden nach ihrer `category` gruppiert
-- Verfuegbare Kategorien: AI, Integration, Data & Analytics, Security, Extension Suite, etc.
-- Dynamische Tab-Generierung basierend auf vorhandenen Kategorien
+**Prompt-Zusammensetzung in der Edge Function:**
 
-### Verbesserte Suche
-- Suche in Name, Beschreibung UND Kategorie
-- Echtzeit-Filterung waehrend der Eingabe
+```typescript
+// 1. Basis-Prompt (aus DB oder Request)
+const systemPrompt = basePrompt || await fetchActivePromptFromDB();
 
-### Fehlerbehandlung
-- Fallback auf statische Mock-Daten falls GitHub nicht erreichbar
-- Benutzerfreundliche Fehlermeldung mit Retry-Button
+// 2. Service-Daten formatieren
+const serviceContext = formatServiceMetadata({
+  serviceName,
+  serviceDescription,
+  serviceLinks,
+  servicePlans,
+  supportComponents
+});
 
----
+// 3. An Perplexity senden
+const messages = [
+  { role: 'system', content: systemPrompt },
+  { role: 'user', content: serviceContext }
+];
+```
 
-## Dateien die erstellt werden
+### 3. Frontend - Prompt mitschicken
 
-| Datei | Beschreibung |
-|-------|--------------|
-| `src/lib/sap-services.ts` | API-Funktionen und TypeScript-Typen |
-| `src/hooks/use-sap-services.ts` | React Hooks mit TanStack Query |
+Das Frontend lädt den aktiven Prompt aus der DB und sendet ihn zusammen mit den Service-Daten:
 
-## Dateien die geaendert werden
+```typescript
+// In startAnalysis()
+const result = await perplexityApi.analyze(
+  selectedService.displayName,
+  selectedService.description,
+  serviceLinks,
+  servicePlans,           // NEU
+  supportComponents,      // NEU
+  'full-basis',           // Neue Kategorie für kombinierte Analyse
+  prompt?.prompt_text     // Basis-Prompt aus DB
+);
+```
 
-| Datei | Aenderungen |
-|-------|-------------|
-| `src/pages/Index.tsx` | Mock-Daten ersetzen, Hooks einbinden, Lade-Zustaende |
+### 4. API-Client Erweiterung
 
----
+Neue Funktion im `perplexityApi`:
 
-## UI-Hinweise fuer den Benutzer
+```typescript
+async analyzeWithFullContext(
+  serviceName: string,
+  serviceDescription: string,
+  serviceDetails: ServiceDetails,
+  basePrompt: string
+): Promise<AnalysisResponse>
+```
 
-Die Seite wird folgende **Erklaerungen** direkt im UI anzeigen:
+## Dateien die geändert werden
 
-1. **Header-Bereich**: "WIREFRAME" Badge wird durch "LIVE DATA" ersetzt
-2. **Unter der Ueberschrift**: Erklaerungstext "Daten werden direkt vom SAP GitHub Repository geladen"
-3. **Bei Service-Karten**: Anzahl der gefundenen Services anzeigen (z.B. "215 Services gefunden")
-4. **Beim Laden**: Skeleton-Karten zeigen visuell dass Daten geladen werden
+| Datei | Änderung |
+|-------|----------|
+| `src/pages/Index.tsx` | Neue Card zur Anzeige der Service-Metadaten, Anpassung `startAnalysis()` |
+| `src/lib/api/perplexity.ts` | Neue Funktion `analyzeWithFullContext()` mit erweiterten Parametern |
+| `supabase/functions/perplexity-analyze/index.ts` | Neue Kategorie `full-basis`, Prompt-Zusammensetzung, erweiterte Metadaten-Verarbeitung |
 
----
+## Vorteile dieser Lösung
 
-## Vorteile dieser Implementierung
-
-- **Immer aktuell**: Services werden direkt von SAP's offizieller Quelle geladen
-- **Kein Backend noetig**: Rein clientseitige Loesung fuer diesen Schritt
-- **Performant**: TanStack Query cached die Daten automatisch
-- **Robust**: Fallback auf Mock-Daten bei Netzwerkproblemen
+1. **Transparenz**: Nutzer sehen genau welche Daten an die KI geschickt werden
+2. **Flexibilität**: Basis-Prompt ist editierbar, Service-Daten kommen automatisch
+3. **Vollständige Metadaten**: Nicht nur Links, sondern auch Plans und Support-Komponenten
+4. **Wartbarkeit**: Prompt-Änderungen erfordern kein Code-Deployment
