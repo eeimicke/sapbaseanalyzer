@@ -775,9 +775,34 @@ const Index = () => {
                       
                       {/* Firecrawl Ergebnis */}
                       {firecrawlUrls.length > 0 && (
-                        <div className="flex items-center gap-2 text-sm text-green-500">
-                          <Check className="w-4 h-4" />
-                          {firecrawlUrls.length} neue URLs entdeckt und hinzugefügt
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-green-500">
+                            <Check className="w-4 h-4" />
+                            {firecrawlUrls.length} URLs entdeckt
+                          </div>
+                          <ScrollArea className="h-48 rounded-lg border border-orange-500/20 bg-muted/30">
+                            <div className="p-3 space-y-2">
+                              {firecrawlUrls.map((url, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-2 text-xs p-2 rounded-md bg-background/50 hover:bg-background transition-colors group"
+                                >
+                                  <Flame className="w-3 h-3 text-orange-500 flex-shrink-0" />
+                                  <span className="flex-1 truncate text-muted-foreground group-hover:text-foreground">
+                                    {url}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => window.open(url, "_blank")}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
                         </div>
                       )}
                     </div>
