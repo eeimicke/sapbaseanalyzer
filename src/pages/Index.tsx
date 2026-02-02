@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Search, 
   Database, 
@@ -32,7 +33,8 @@ import {
   Settings,
   AlertCircle,
   Globe,
-  Github
+  Github,
+  Flame
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
 import { 
@@ -42,6 +44,7 @@ import {
   type ServiceInventoryItem,
   type ServiceLink
 } from "@/lib/sap-services";
+import { firecrawlApi } from "@/lib/api/firecrawl";
 
 // Typ für UI-Links mit Selection-State
 interface DiscoveredUrl {
@@ -77,6 +80,7 @@ const classificationIcons: Record<string, typeof FileCode> = {
   "API Hub": FileCode,
   "Support": Shield,
   "Marketing": Globe,
+  "Firecrawl": Flame,
   "Other": Link2,
 };
 
@@ -89,12 +93,14 @@ const classificationLabels: Record<string, string> = {
   "API Hub": "API Hub",
   "Support": "Support",
   "Marketing": "Marketing",
+  "Firecrawl": "Firecrawl Discovered",
   "Other": "Sonstige",
 };
 
 // Hauptkategorien werden dynamisch aus den Daten extrahiert
 
 const Index = () => {
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,6 +108,12 @@ const Index = () => {
   const [isDark, setIsDark] = useState(true);
   const [discoveredUrls, setDiscoveredUrls] = useState<DiscoveredUrl[]>([]);
   const [mapProgress, setMapProgress] = useState(0);
+  
+  // Firecrawl States
+  const [firecrawlUrls, setFirecrawlUrls] = useState<string[]>([]);
+  const [isFirecrawling, setIsFirecrawling] = useState(false);
+  const [firecrawlProgress, setFirecrawlProgress] = useState(0);
+  const [firecrawlError, setFirecrawlError] = useState<string | null>(null);
 
   // Live-Daten vom SAP GitHub Repository laden
   const { 
@@ -214,6 +226,79 @@ const Index = () => {
       return () => clearInterval(interval);
     }
   }, [currentStep, isLoadingDetails]);
+
+  // Firecrawl Map Funktion
+  const runFirecrawlMap = async (url: string) => {
+    setIsFirecrawling(true);
+    setFirecrawlError(null);
+    setFirecrawlProgress(0);
+    setFirecrawlUrls([]);
+
+    // Progress Animation
+    const progressInterval = setInterval(() => {
+      setFirecrawlProgress((prev) => {
+        if (prev >= 90) {
+          return 90;
+        }
+        return prev + 5;
+      });
+    }, 300);
+
+    try {
+      const result = await firecrawlApi.map(url, { 
+        limit: 100,
+        includeSubdomains: true 
+      });
+
+      clearInterval(progressInterval);
+
+      if (result.success && result.links) {
+        setFirecrawlUrls(result.links);
+        setFirecrawlProgress(100);
+        
+        // URLs zu discoveredUrls hinzufügen (als "Firecrawl" Kategorie)
+        const newUrls: DiscoveredUrl[] = result.links.map((link: string) => ({
+          url: link,
+          classification: "Firecrawl",
+          text: link.split('/').pop() || link,
+          type: "Discovered",
+          selected: false
+        }));
+        
+        setDiscoveredUrls(prev => {
+          // Duplikate vermeiden
+          const existingUrls = new Set(prev.map(u => u.url));
+          const uniqueNewUrls = newUrls.filter(u => !existingUrls.has(u.url));
+          return [...prev, ...uniqueNewUrls];
+        });
+
+        toast({
+          title: "Firecrawl erfolgreich",
+          description: `${result.links.length} URLs auf ${url} gefunden`,
+        });
+      } else {
+        setFirecrawlError(result.error || "Keine URLs gefunden");
+        setFirecrawlProgress(0);
+        toast({
+          title: "Firecrawl Fehler",
+          description: result.error || "Keine URLs gefunden",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      clearInterval(progressInterval);
+      const errorMsg = error instanceof Error ? error.message : "Unbekannter Fehler";
+      setFirecrawlError(errorMsg);
+      setFirecrawlProgress(0);
+      toast({
+        title: "Firecrawl Fehler",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    } finally {
+      setIsFirecrawling(false);
+    }
+  };
 
   const toggleUrl = (index: number) => {
     setDiscoveredUrls((prev) =>
@@ -625,6 +710,103 @@ const Index = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Firecrawl Card - Zusätzliche URLs entdecken */}
+            {mapProgress >= 100 && (
+              <Card className="border-border/50 border-orange-500/30 bg-orange-500/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center">
+                      <Flame className="w-5 h-5 text-white" />
+                    </div>
+                    Firecrawl Map Discovery
+                  </CardTitle>
+                  <CardDescription>
+                    Nutze Firecrawl um zusätzliche URLs auf Dokumentationsseiten zu entdecken
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Discovery Center URL für Firecrawl */}
+                  {discoveryUrl && (
+                    <div className="p-4 rounded-lg bg-muted/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium mb-1">Discovery Center</p>
+                          <p className="text-xs text-muted-foreground truncate">{discoveryUrl}</p>
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={isFirecrawling}
+                          className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+                          onClick={() => runFirecrawlMap(discoveryUrl)}
+                        >
+                          {isFirecrawling ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Crawling...
+                            </>
+                          ) : (
+                            <>
+                              <Flame className="w-4 h-4" />
+                              Map starten
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {/* Firecrawl Progress */}
+                      {isFirecrawling && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Firecrawl Progress</span>
+                            <span className="text-orange-500 font-medium">{firecrawlProgress}%</span>
+                          </div>
+                          <Progress value={firecrawlProgress} className="h-2" />
+                        </div>
+                      )}
+                      
+                      {/* Firecrawl Error */}
+                      {firecrawlError && (
+                        <div className="flex items-center gap-2 text-sm text-destructive">
+                          <AlertCircle className="w-4 h-4" />
+                          {firecrawlError}
+                        </div>
+                      )}
+                      
+                      {/* Firecrawl Ergebnis */}
+                      {firecrawlUrls.length > 0 && (
+                        <div className="flex items-center gap-2 text-sm text-green-500">
+                          <Check className="w-4 h-4" />
+                          {firecrawlUrls.length} neue URLs entdeckt und hinzugefügt
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Alle Documentation Links die gecrawlt werden können */}
+                  {discoveredUrls.filter(u => 
+                    u.classification === "Documentation" || 
+                    u.classification === "SAP Help Portal"
+                  ).slice(0, 3).map((docUrl, idx) => (
+                    <div key={idx} className="p-3 rounded-lg bg-muted/30 flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-muted-foreground truncate">{docUrl.url}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isFirecrawling}
+                        className="gap-2 border-orange-500/30 text-orange-500 hover:bg-orange-500/10"
+                        onClick={() => runFirecrawlMap(docUrl.url)}
+                      >
+                        <Flame className="w-3 h-3" />
+                        Map
+                      </Button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Discovered URLs List - Grouped by Classification */}
             {mapProgress >= 100 && discoveredUrls.length > 0 && (
