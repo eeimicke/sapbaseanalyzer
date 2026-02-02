@@ -13,7 +13,7 @@ interface AnalysisRequest {
   serviceName: string;
   serviceDescription: string;
   serviceLinks: ServiceLink[];
-  category: 'security' | 'integration' | 'monitoring' | 'lifecycle';
+  category: 'security' | 'integration' | 'monitoring' | 'lifecycle' | 'quick-summary';
 }
 
 const categoryPrompts: Record<string, string> = {
@@ -64,6 +64,14 @@ Fokussiere auf:
 
 Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
+
+  'quick-summary': `Du bist ein SAP-Experte. Erstelle eine sehr kurze Zusammenfassung (max. 2-3 Sätze) des angegebenen SAP BTP Services.
+
+Beschreibe in maximal 50 Wörtern:
+- Was der Service macht
+- Für wen er gedacht ist
+
+Nutze die bereitgestellten Links für die Recherche. Antworte auf Deutsch, prägnant und ohne Formatierung.`,
 };
 
 Deno.serve(async (req) => {
@@ -106,7 +114,14 @@ Deno.serve(async (req) => {
           .join('\n')
       : 'Keine Links verfügbar.';
 
-    const userMessage = `Analysiere den SAP BTP Service "${serviceName}".
+    const isQuickSummary = category === 'quick-summary';
+    
+    const userMessage = isQuickSummary
+      ? `SAP BTP Service: "${serviceName}"
+Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
+Links: ${linksContext}
+Erstelle eine sehr kurze Zusammenfassung.`
+      : `Analysiere den SAP BTP Service "${serviceName}".
 
 Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
 
@@ -129,7 +144,7 @@ Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und ers
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        max_tokens: 2000,
+        max_tokens: isQuickSummary ? 150 : 2000,
         temperature: 0.3,
       }),
     });

@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Github, ExternalLink, BookOpen, Database, FileCode, Shield, Globe, Link2, Loader2 } from "lucide-react";
+import { Check, Github, ExternalLink, BookOpen, Database, FileCode, Shield, Globe, Link2, Loader2, Sparkles } from "lucide-react";
 import { type ServiceInventoryItem } from "@/lib/sap-services";
 import { useServiceDetails } from "@/hooks/use-sap-services";
+import { supabase } from "@/integrations/supabase/client";
 
 // Icon-Mapping für Link-Classifications
 const classificationIcons: Record<string, typeof FileCode> = {
@@ -24,6 +26,9 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, isSelected, onSelect }: ServiceCardProps) {
   const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.technicalId);
+  const [quickSummary, setQuickSummary] = useState<string | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
   
   // GitHub Repository URL für diesen Service
   const githubUrl = `https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${service.technicalId}.json`;
@@ -38,6 +43,58 @@ export function ServiceCard({ service, isSelected, onSelect }: ServiceCardProps)
   }, {} as Record<string, typeof serviceDetails.links>) || {};
 
   const classifications = Object.keys(groupedLinks);
+
+  // Perplexity Quick Summary wenn ausgewählt und Details geladen
+  useEffect(() => {
+    if (isSelected && serviceDetails && !quickSummary && !isLoadingSummary && !summaryError) {
+      const fetchQuickSummary = async () => {
+        setIsLoadingSummary(true);
+        setSummaryError(null);
+
+        // Prepare service links for Perplexity
+        const serviceLinks = (serviceDetails.links || [])
+          .filter(l => l.value?.startsWith('http'))
+          .map(l => ({
+            classification: l.classification || 'Other',
+            text: l.text || l.classification || 'Link',
+            value: l.value,
+          }));
+
+        try {
+          const { data, error } = await supabase.functions.invoke('perplexity-analyze', {
+            body: {
+              serviceName: service.displayName,
+              serviceDescription: service.description || '',
+              serviceLinks,
+              category: 'quick-summary',
+            },
+          });
+
+          if (error) {
+            setSummaryError(error.message);
+          } else if (data?.success && data?.data?.content) {
+            setQuickSummary(data.data.content);
+          } else if (data?.error) {
+            setSummaryError(data.error);
+          }
+        } catch (err) {
+          setSummaryError(err instanceof Error ? err.message : 'Unbekannter Fehler');
+        } finally {
+          setIsLoadingSummary(false);
+        }
+      };
+
+      fetchQuickSummary();
+    }
+  }, [isSelected, serviceDetails, service.displayName, service.description, quickSummary, isLoadingSummary, summaryError]);
+
+  // Reset summary when deselected
+  useEffect(() => {
+    if (!isSelected) {
+      setQuickSummary(null);
+      setSummaryError(null);
+    }
+  }, [isSelected]);
 
   return (
     <Card
@@ -113,9 +170,30 @@ export function ServiceCard({ service, isSelected, onSelect }: ServiceCardProps)
           ) : null
         )}
 
-        {/* Vollständige Link-Liste (ausgewählt) */}
+        {/* Vollständige Link-Liste + Perplexity Summary (ausgewählt) */}
         {isSelected && (
           <div className="space-y-3 pt-2 border-t border-border/50">
+            {/* Quick AI Summary */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                <Sparkles className="w-3.5 h-3.5" />
+                Perplexity KI-Zusammenfassung
+              </div>
+              <div className="pl-5">
+                {isLoadingSummary ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Recherchiere mit {classifications.length > 0 ? Object.values(groupedLinks).flat().length : 0} URLs...
+                  </div>
+                ) : summaryError ? (
+                  <p className="text-xs text-destructive">{summaryError}</p>
+                ) : quickSummary ? (
+                  <p className="text-xs text-muted-foreground leading-relaxed">{quickSummary}</p>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Links */}
             {isLoadingDetails ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 animate-spin" />
