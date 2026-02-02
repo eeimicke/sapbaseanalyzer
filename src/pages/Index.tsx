@@ -51,7 +51,7 @@ import { ServiceCard } from "@/components/ServiceCard";
 const steps = [
   { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
   { id: 2, title: "Basis-Analyse", icon: Bot, description: "KI-Analyse" },
-  { id: 3, title: "Report", icon: FileText, description: "Übersicht" },
+  { id: 3, title: "Kostenanalyse", icon: FileText, description: "TCO & Report" },
 ];
 
 
@@ -711,9 +711,9 @@ const Index = () => {
         {currentStep === 3 && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">Analyse-Report</h2>
+              <h2 className="text-3xl font-semibold mb-2">Kostenanalyse</h2>
               <p className="text-muted-foreground">
-                Zusammenfassung für {selectedService?.displayName || "den Service"}
+                TCO-Prognose für {selectedService?.displayName || "den Service"}
               </p>
             </div>
 
