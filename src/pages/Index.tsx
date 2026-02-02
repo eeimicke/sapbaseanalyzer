@@ -45,6 +45,7 @@ import {
   type ServiceLink
 } from "@/lib/sap-services";
 import { firecrawlApi, type ScrapeResult } from "@/lib/api/firecrawl";
+import { perplexityApi, type AnalysisCategory, type AnalysisResponse } from "@/lib/api/perplexity";
 
 // Typ für UI-Links mit Selection-State
 interface DiscoveredUrl {
@@ -64,11 +65,16 @@ const steps = [
   { id: 6, title: "Report", icon: FileText, description: "Übersicht" },
 ];
 
-const basisCategories = [
-  { icon: Shield, name: "Berechtigungen & Security", color: "text-red-400" },
-  { icon: Network, name: "Integration & Konnektivität", color: "text-blue-400" },
-  { icon: Activity, name: "Monitoring & Operations", color: "text-primary" },
-  { icon: RefreshCw, name: "Lifecycle Management", color: "text-purple-400" },
+const basisCategories: Array<{
+  id: AnalysisCategory;
+  icon: typeof Shield;
+  name: string;
+  color: string;
+}> = [
+  { id: 'security', icon: Shield, name: "Berechtigungen & Security", color: "text-red-400" },
+  { id: 'integration', icon: Network, name: "Integration & Konnektivität", color: "text-blue-400" },
+  { id: 'monitoring', icon: Activity, name: "Monitoring & Operations", color: "text-primary" },
+  { id: 'lifecycle', icon: RefreshCw, name: "Lifecycle Management", color: "text-purple-400" },
 ];
 
 // Icon-Mapping für Link-Classifications aus der API
@@ -121,6 +127,18 @@ const Index = () => {
   const [crawlResults, setCrawlResults] = useState<ScrapeResult[]>([]);
   const [currentCrawlUrl, setCurrentCrawlUrl] = useState<string | null>(null);
   const [crawlComplete, setCrawlComplete] = useState(false);
+
+  // Analysis States (Step 4)
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [analysisResults, setAnalysisResults] = useState<Record<AnalysisCategory, AnalysisResponse | null>>({
+    security: null,
+    integration: null,
+    monitoring: null,
+    lifecycle: null,
+  });
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [currentAnalysisCategory, setCurrentAnalysisCategory] = useState<string | null>(null);
 
   // Live-Daten vom SAP GitHub Repository laden
   const { 
@@ -356,12 +374,87 @@ const Index = () => {
     }
   };
 
+  // Start Perplexity AI Analysis
+  const startAnalysis = async () => {
+    if (!selectedService) return;
+
+    setIsAnalyzing(true);
+    setAnalysisProgress(0);
+    setAnalysisResults({
+      security: null,
+      integration: null,
+      monitoring: null,
+      lifecycle: null,
+    });
+    setAnalysisComplete(false);
+
+    // Prepare crawled content
+    const crawledContent = crawlResults
+      .filter(r => r.success && r.data?.markdown)
+      .map(r => ({
+        url: r.url,
+        markdown: r.data?.markdown || '',
+        title: r.data?.metadata?.title,
+      }));
+
+    const categories: AnalysisCategory[] = ['security', 'integration', 'monitoring', 'lifecycle'];
+    let completedCount = 0;
+
+    try {
+      // Run all analyses in parallel
+      const promises = categories.map(async (category) => {
+        setCurrentAnalysisCategory(category);
+        
+        const result = await perplexityApi.analyze(
+          selectedService.displayName,
+          selectedService.description || '',
+          crawledContent,
+          category
+        );
+
+        completedCount++;
+        setAnalysisProgress(Math.round((completedCount / categories.length) * 100));
+        
+        setAnalysisResults(prev => ({
+          ...prev,
+          [category]: result,
+        }));
+
+        return { category, result };
+      });
+
+      await Promise.all(promises);
+
+      setAnalysisComplete(true);
+      setCurrentAnalysisCategory(null);
+      toast({
+        title: "Analyse abgeschlossen",
+        description: "Alle 4 Kategorien wurden erfolgreich analysiert.",
+      });
+    } catch (error) {
+      toast({
+        title: "Analyse Fehler",
+        description: error instanceof Error ? error.message : "Unbekannter Fehler",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Auto-start crawling when entering Step 3
   useEffect(() => {
     if (currentStep === 3 && !isCrawling && crawlResults.length === 0 && !crawlComplete) {
       startCrawling();
     }
   }, [currentStep]);
+
+  // Auto-start analysis when entering Step 4
+  useEffect(() => {
+    if (currentStep === 4 && !isAnalyzing && !analysisComplete && crawlComplete) {
+      startAnalysis();
+    }
+  }, [currentStep, crawlComplete]);
 
   const toggleUrl = (index: number) => {
     setDiscoveredUrls((prev) =>
@@ -1275,45 +1368,166 @@ const Index = () => {
               <p className="text-muted-foreground">
                 Perplexity AI analysiert die Dokumentation für {selectedService?.displayName || "den Service"}
               </p>
+              
+              {/* Progress indicator */}
+              {isAnalyzing && (
+                <div className="mt-4 max-w-md mx-auto">
+                  <Progress value={analysisProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {currentAnalysisCategory 
+                      ? `Analysiere: ${basisCategories.find(c => c.id === currentAnalysisCategory)?.name || currentAnalysisCategory}`
+                      : `${analysisProgress}% abgeschlossen`
+                    }
+                  </p>
+                </div>
+              )}
+              
+              {/* Crawled content info */}
+              <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 text-sm">
+                <FileText className="w-4 h-4 text-primary" />
+                <span>
+                  {crawlResults.filter(r => r.success).length} Dokumente als Kontext für die Analyse
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {basisCategories.map((category, index) => (
-                <Card key={index} className="border-border/50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-3 text-lg">
-                      <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center`}>
-                        <category.icon className={`w-5 h-5 ${category.color}`} />
-                      </div>
-                      {category.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        <span className="text-muted-foreground">Analysiere...</span>
-                      </div>
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
-                        <Skeleton className="h-4 w-4/6" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {basisCategories.map((category) => {
+                const result = analysisResults[category.id];
+                const isCurrentlyAnalyzing = isAnalyzing && currentAnalysisCategory === category.id;
+                const hasResult = result !== null;
+                const isSuccess = hasResult && result.success;
+                const hasError = hasResult && !result.success;
+
+                return (
+                  <Card key={category.id} className={`border-border/50 transition-all ${isSuccess ? 'border-primary/30' : ''}`}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-3 text-lg">
+                        <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center`}>
+                          <category.icon className={`w-5 h-5 ${category.color}`} />
+                        </div>
+                        <span className="flex-1">{category.name}</span>
+                        {isSuccess && <Check className="w-5 h-5 text-primary" />}
+                        {hasError && <AlertCircle className="w-5 h-5 text-destructive" />}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Loading State */}
+                      {(!hasResult && !isCurrentlyAnalyzing && isAnalyzing) && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <div className="w-4 h-4 rounded-full bg-muted animate-pulse" />
+                            <span className="text-muted-foreground">Wartend...</span>
+                          </div>
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-5/6" />
+                            <Skeleton className="h-4 w-4/6" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Currently Analyzing */}
+                      {isCurrentlyAnalyzing && (
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            <span className="text-muted-foreground">Perplexity AI analysiert...</span>
+                          </div>
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-full animate-pulse" />
+                            <Skeleton className="h-4 w-5/6 animate-pulse" />
+                            <Skeleton className="h-4 w-4/6 animate-pulse" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Error State */}
+                      {hasError && (
+                        <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
+                          <p className="text-sm text-destructive">
+                            Fehler: {result.error || 'Unbekannter Fehler'}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Success State - Show Analysis */}
+                      {isSuccess && result.data && (
+                        <div className="space-y-4">
+                          <ScrollArea className="h-[200px] rounded-md border border-border/30 p-3">
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                              <div className="text-sm whitespace-pre-wrap">
+                                {result.data.content}
+                              </div>
+                            </div>
+                          </ScrollArea>
+                          
+                          {/* Citations */}
+                          {result.data.citations && result.data.citations.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground font-medium">
+                                Quellen ({result.data.citations.length}):
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {result.data.citations.slice(0, 3).map((citation, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="outline" 
+                                    className="text-xs cursor-pointer hover:bg-muted"
+                                    onClick={() => window.open(citation, '_blank')}
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    {new URL(citation).hostname}
+                                  </Badge>
+                                ))}
+                                {result.data.citations.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{result.data.citations.length - 3} mehr
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Initial waiting state */}
+                      {!hasResult && !isAnalyzing && (
+                        <div className="text-center py-4 text-muted-foreground text-sm">
+                          Analyse wird gestartet...
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(3)} className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setAnalysisResults({
+                    security: null,
+                    integration: null,
+                    monitoring: null,
+                    lifecycle: null,
+                  });
+                  setAnalysisProgress(0);
+                  setAnalysisComplete(false);
+                  setCurrentStep(3);
+                }} 
+                className="gap-2"
+                disabled={isAnalyzing}
+              >
                 Zurück
               </Button>
               <Button
                 onClick={() => setCurrentStep(5)}
+                disabled={!analysisComplete}
                 className="gap-2 nagarro-gradient text-background nagarro-glow"
               >
-                Zur Kostenanalyse
+                {analysisComplete ? "Zur Kostenanalyse" : "Analyse läuft..."}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
