@@ -142,6 +142,18 @@ const Index = () => {
     return extractCategories(services);
   }, [services]);
 
+  // Anzahl der Services pro Kategorie berechnen
+  const categoryCounts = useMemo(() => {
+    if (!services) return {};
+    const counts: Record<string, number> = { all: services.length };
+    for (const service of services) {
+      if (service.category) {
+        counts[service.category] = (counts[service.category] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [services]);
+
   // Links nach Classification gruppieren für die Anzeige
   const groupedLinks = useMemo(() => {
     const groups: Record<string, DiscoveredUrl[]> = {};
@@ -369,10 +381,12 @@ const Index = () => {
               </div>
               <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-auto">
                 <TabsList className="bg-muted/50 flex-wrap h-auto">
-                  <TabsTrigger value="all">Alle</TabsTrigger>
+                  <TabsTrigger value="all">
+                    Alle ({categoryCounts.all || 0})
+                  </TabsTrigger>
                   {availableCategories.slice(0, 5).map((cat) => (
                     <TabsTrigger key={cat} value={cat}>
-                      {cat.length > 15 ? cat.substring(0, 15) + "…" : cat}
+                      {cat.length > 12 ? cat.substring(0, 12) + "…" : cat} ({categoryCounts[cat] || 0})
                     </TabsTrigger>
                   ))}
                 </TabsList>
