@@ -88,7 +88,7 @@ export const perplexityApi = {
       displayName: plan.displayName,
       description: plan.description,
       isFree: plan.isFree,
-      regions: plan.dataCenters?.map(dc => dc.displayName) || [],
+      regions: plan.dataCenters?.map(dc => dc.region || dc.name) || [],
     }));
 
     // Prepare support components
