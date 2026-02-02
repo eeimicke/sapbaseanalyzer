@@ -448,10 +448,58 @@ const Index = () => {
                       </a>
                     </div>
                     <CardTitle className="text-lg line-clamp-1">{service.displayName}</CardTitle>
-                    <CardDescription className="text-sm line-clamp-2">
+                    <CardDescription className={selectedService?.technicalId === service.technicalId ? "text-sm" : "text-sm line-clamp-2"}>
                       {service.description}
                     </CardDescription>
                   </CardHeader>
+                  
+                  {/* Links anzeigen wenn Service ausgewählt */}
+                  {selectedService?.technicalId === service.technicalId && (
+                    <CardContent className="pt-0">
+                      {isLoadingDetails ? (
+                        <div className="flex items-center gap-2 text-muted-foreground py-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Lade Links...</span>
+                        </div>
+                      ) : serviceDetails?.links && serviceDetails.links.length > 0 ? (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            {serviceDetails.links.filter(l => l.value?.startsWith("http")).length} Links verfügbar:
+                          </p>
+                          <div className="space-y-1 max-h-48 overflow-y-auto">
+                            {serviceDetails.links
+                              .filter(link => link.value?.startsWith("http"))
+                              .map((link, idx) => {
+                                const Icon = classificationIcons[link.classification] || Link2;
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={link.value}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-2 text-xs p-2 rounded-md bg-muted/50 hover:bg-muted transition-colors group"
+                                  >
+                                    <Icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                                    <span className="flex-1 truncate text-muted-foreground group-hover:text-foreground">
+                                      {link.text || link.classification || "Link"}
+                                    </span>
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0">
+                                      {link.classification || "Other"}
+                                    </Badge>
+                                    <ExternalLink className="w-3 h-3 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                                  </a>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground py-2">
+                          Keine Links verfügbar
+                        </p>
+                      )}
+                    </CardContent>
+                  )}
                 </Card>
               ))}
 
