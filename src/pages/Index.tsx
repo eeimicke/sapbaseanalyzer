@@ -37,7 +37,7 @@ import { useServiceInventory } from "@/hooks/use-sap-services";
 import { 
   filterServices, 
   extractCategories, 
-  getDiscoveryCenterUrl,
+  buildDiscoveryCenterFallbackUrl,
   type ServiceInventoryItem 
 } from "@/lib/sap-services";
 
@@ -390,7 +390,7 @@ const Index = () => {
                       className="w-full gap-2 text-muted-foreground hover:text-primary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(getDiscoveryCenterUrl(service.technicalId), "_blank");
+                        window.open(buildDiscoveryCenterFallbackUrl(service.displayName), "_blank");
                       }}
                     >
                       <ExternalLink className="w-4 h-4" />

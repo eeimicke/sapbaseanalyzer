@@ -161,8 +161,27 @@ export function filterServices(
 }
 
 /**
- * Gibt die Discovery Center URL für einen Service zurück
+ * Extrahiert die Discovery Center URL aus den Service-Links
+ * Falls nicht vorhanden, wird keine URL zurückgegeben
  */
-export function getDiscoveryCenterUrl(technicalId: string): string {
-  return `https://discovery-center.cloud.sap/serviceCatalog/${technicalId}`;
+export function getDiscoveryCenterUrl(links: ServiceLink[]): string | null {
+  const dcLink = links.find(link => 
+    link.classification === "Discovery Center" && 
+    !link.value.includes("index.html#")
+  );
+  return dcLink?.value ?? null;
+}
+
+/**
+ * Fallback-URL für Discovery Center basierend auf Service-Name
+ * HINWEIS: Das URL-Format ist nicht konsistent (manche haben "sap-" Präfix)
+ * Besser: Echte Links aus fetchServiceDetails() verwenden
+ */
+export function buildDiscoveryCenterFallbackUrl(displayName: string): string {
+  // Versuche das Format zu erraten: "SAP Integration Suite" -> "sap-integration-suite"
+  const slug = displayName
+    .toLowerCase()
+    .replace(/^sap\s+/, "sap-")
+    .replace(/\s+/g, "-");
+  return `https://discovery-center.cloud.sap/serviceCatalog/${slug}`;
 }
