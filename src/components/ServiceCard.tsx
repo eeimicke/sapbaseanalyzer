@@ -245,7 +245,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                 size="sm"
               >
                 <Sparkles className="w-4 h-4" />
-                Basis-Analyse starten
+                An Basis-Analyse übergeben
                 <ChevronRight className="w-4 h-4" />
               </Button>
             )}
