@@ -9,11 +9,27 @@ interface ServiceLink {
   value: string;
 }
 
+interface ServicePlanContext {
+  name: string;
+  displayName: string;
+  description: string;
+  isFree: boolean;
+  regions: string[];
+}
+
+interface SupportComponent {
+  value: string;
+  classification: string;
+}
+
 interface AnalysisRequest {
   serviceName: string;
   serviceDescription: string;
   serviceLinks: ServiceLink[];
-  category: 'security' | 'integration' | 'monitoring' | 'lifecycle' | 'quick-summary';
+  servicePlans?: ServicePlanContext[];
+  supportComponents?: SupportComponent[];
+  category: 'security' | 'integration' | 'monitoring' | 'lifecycle' | 'quick-summary' | 'full-basis';
+  basePrompt?: string;
 }
 
 const categoryPrompts: Record<string, string> = {
@@ -74,13 +90,79 @@ Beschreibe in maximal 50 Wörtern:
 Nutze die bereitgestellten Links für die Recherche. Antworte auf Deutsch, prägnant und ohne Formatierung.`,
 };
 
+// Format service metadata for the user message in full-basis analysis
+function formatServiceContext(
+  serviceName: string,
+  serviceDescription: string,
+  serviceLinks: ServiceLink[],
+  servicePlans?: ServicePlanContext[],
+  supportComponents?: SupportComponent[]
+): string {
+  const sections: string[] = [];
+
+  sections.push(`# SAP BTP Service: ${serviceName}`);
+  sections.push(`\n## Beschreibung\n${serviceDescription || 'Keine Beschreibung verfügbar.'}`);
+
+  // Format links by classification
+  if (serviceLinks && serviceLinks.length > 0) {
+    sections.push('\n## Dokumentationslinks');
+    const linksByClass: Record<string, ServiceLink[]> = {};
+    for (const link of serviceLinks) {
+      const cls = link.classification || 'Other';
+      if (!linksByClass[cls]) linksByClass[cls] = [];
+      linksByClass[cls].push(link);
+    }
+    for (const [cls, links] of Object.entries(linksByClass)) {
+      sections.push(`\n### ${cls}`);
+      for (const link of links) {
+        sections.push(`- [${link.text}](${link.value})`);
+      }
+    }
+  }
+
+  // Format service plans
+  if (servicePlans && servicePlans.length > 0) {
+    sections.push('\n## Service-Plans');
+    for (const plan of servicePlans) {
+      const freeTag = plan.isFree ? ' (kostenlos)' : '';
+      sections.push(`\n### ${plan.displayName}${freeTag}`);
+      if (plan.description) {
+        sections.push(plan.description);
+      }
+      if (plan.regions && plan.regions.length > 0) {
+        sections.push(`Verfügbare Regionen: ${plan.regions.join(', ')}`);
+      }
+    }
+  }
+
+  // Format support components
+  if (supportComponents && supportComponents.length > 0) {
+    sections.push('\n## Support-Komponenten');
+    for (const comp of supportComponents) {
+      sections.push(`- ${comp.value} (${comp.classification})`);
+    }
+  }
+
+  sections.push('\n---\nBitte analysiere diesen Service aus SAP Basis-Perspektive und liefere das Ergebnis im spezifizierten JSON-Format.');
+
+  return sections.join('\n');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { serviceName, serviceDescription, serviceLinks, category }: AnalysisRequest = await req.json();
+    const { 
+      serviceName, 
+      serviceDescription, 
+      serviceLinks, 
+      servicePlans,
+      supportComponents,
+      category,
+      basePrompt 
+    }: AnalysisRequest = await req.json();
 
     if (!serviceName || !category) {
       return new Response(
@@ -98,30 +180,56 @@ Deno.serve(async (req) => {
       );
     }
 
-    const systemPrompt = categoryPrompts[category];
-    if (!systemPrompt) {
-      return new Response(
-        JSON.stringify({ success: false, error: `Invalid category: ${category}` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    // Determine system prompt and user message based on category
+    let systemPrompt: string;
+    let userMessage: string;
+    let maxTokens: number;
+
+    if (category === 'full-basis') {
+      // Use the base prompt from DB (passed from frontend) as system prompt
+      systemPrompt = basePrompt || 'Du bist ein erfahrener SAP Basis-Administrator. Analysiere den folgenden Service.';
+      
+      // Format full service context as user message
+      userMessage = formatServiceContext(
+        serviceName,
+        serviceDescription,
+        serviceLinks,
+        servicePlans,
+        supportComponents
       );
-    }
+      maxTokens = 4000;
+    } else if (category === 'quick-summary') {
+      systemPrompt = categoryPrompts[category];
+      
+      const linksContext = serviceLinks && serviceLinks.length > 0
+        ? serviceLinks
+            .filter(l => l.value?.startsWith('http'))
+            .map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`)
+            .join('\n')
+        : 'Keine Links verfügbar.';
 
-    // Format service links as context
-    const linksContext = serviceLinks && serviceLinks.length > 0
-      ? serviceLinks
-          .filter(l => l.value?.startsWith('http'))
-          .map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`)
-          .join('\n')
-      : 'Keine Links verfügbar.';
-
-    const isQuickSummary = category === 'quick-summary';
-    
-    const userMessage = isQuickSummary
-      ? `SAP BTP Service: "${serviceName}"
+      userMessage = `SAP BTP Service: "${serviceName}"
 Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
 Links: ${linksContext}
-Erstelle eine sehr kurze Zusammenfassung.`
-      : `Analysiere den SAP BTP Service "${serviceName}".
+Erstelle eine sehr kurze Zusammenfassung.`;
+      maxTokens = 150;
+    } else {
+      systemPrompt = categoryPrompts[category];
+      if (!systemPrompt) {
+        return new Response(
+          JSON.stringify({ success: false, error: `Invalid category: ${category}` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const linksContext = serviceLinks && serviceLinks.length > 0
+        ? serviceLinks
+            .filter(l => l.value?.startsWith('http'))
+            .map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`)
+            .join('\n')
+        : 'Keine Links verfügbar.';
+
+      userMessage = `Analysiere den SAP BTP Service "${serviceName}".
 
 Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
 
@@ -129,6 +237,8 @@ Relevante Dokumentationslinks:
 ${linksContext}
 
 Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und erstelle eine detaillierte Analyse. Nutze die obigen Links als Ausgangspunkt.`;
+      maxTokens = 2000;
+    }
 
     console.log(`Analyzing ${serviceName} for category: ${category}`);
 
@@ -144,7 +254,7 @@ Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und ers
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        max_tokens: isQuickSummary ? 150 : 2000,
+        max_tokens: maxTokens,
         temperature: 0.3,
       }),
     });

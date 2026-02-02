@@ -1,6 +1,11 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { ServiceDetails, ServicePlan } from '@/lib/sap-services';
 
-export type AnalysisCategory = 'security' | 'integration' | 'monitoring' | 'lifecycle';
+// Categories used for UI display (4 cards)
+export type AnalysisCategoryUI = 'security' | 'integration' | 'monitoring' | 'lifecycle';
+
+// Categories used for API calls (includes full-basis for combined analysis)
+export type AnalysisCategory = AnalysisCategoryUI | 'full-basis';
 
 export type AnalysisResult = {
   category: AnalysisCategory;
@@ -21,6 +26,11 @@ export type ServiceLink = {
   value: string;
 };
 
+export type SupportComponent = {
+  value: string;
+  classification: string;
+};
+
 export const perplexityApi = {
   /**
    * Analyze a SAP service for a specific category using Perplexity AI
@@ -38,6 +48,61 @@ export const perplexityApi = {
         serviceDescription,
         serviceLinks,
         category,
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return data;
+  },
+
+  /**
+   * Analyze a SAP service with full context: base prompt from DB + complete service metadata
+   * This is the new unified analysis method combining basis-prompt with service data
+   */
+  async analyzeWithFullContext(
+    serviceName: string,
+    serviceDescription: string,
+    serviceDetails: ServiceDetails,
+    basePrompt: string
+  ): Promise<AnalysisResponse> {
+    // Prepare service links
+    const serviceLinks: ServiceLink[] = (serviceDetails.links || [])
+      .filter(l => l.value?.startsWith('http'))
+      .map(l => ({
+        classification: l.classification || 'Other',
+        text: l.text || l.classification || 'Link',
+        value: l.value,
+      }));
+
+    // Prepare service plans (simplified for context)
+    const servicePlans: Array<{
+      name: string;
+      displayName: string;
+      description: string;
+      isFree: boolean;
+      regions: string[];
+    }> = (serviceDetails.servicePlans || []).map(plan => ({
+      name: plan.name,
+      displayName: plan.displayName,
+      description: plan.description,
+      isFree: plan.isFree,
+      regions: plan.dataCenters?.map(dc => dc.displayName) || [],
+    }));
+
+    // Prepare support components
+    const supportComponents: SupportComponent[] = serviceDetails.supportComponents || [];
+
+    const { data, error } = await supabase.functions.invoke('perplexity-analyze', {
+      body: {
+        serviceName,
+        serviceDescription,
+        serviceLinks,
+        servicePlans,
+        supportComponents,
+        category: 'full-basis',
+        basePrompt,
       },
     });
 

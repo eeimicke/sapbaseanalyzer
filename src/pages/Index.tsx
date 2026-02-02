@@ -45,7 +45,7 @@ import {
   type ServiceInventoryItem,
   type ServiceDetails
 } from "@/lib/sap-services";
-import { perplexityApi, type AnalysisCategory, type AnalysisResponse, type ServiceLink } from "@/lib/api/perplexity";
+import { perplexityApi, type AnalysisCategoryUI, type AnalysisResponse, type ServiceLink } from "@/lib/api/perplexity";
 import { ServiceCard } from "@/components/ServiceCard";
 
 const steps = [
@@ -55,7 +55,7 @@ const steps = [
 ];
 
 const basisCategories: Array<{
-  id: AnalysisCategory;
+  id: AnalysisCategoryUI;
   icon: typeof Shield;
   name: string;
   color: string;
@@ -102,7 +102,7 @@ const Index = () => {
   // Analysis States (Step 2)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [analysisResults, setAnalysisResults] = useState<Record<AnalysisCategory, AnalysisResponse | null>>({
+  const [analysisResults, setAnalysisResults] = useState<Record<AnalysisCategoryUI, AnalysisResponse | null>>({
     security: null,
     integration: null,
     monitoring: null,
@@ -197,7 +197,7 @@ const Index = () => {
         value: l.value,
       }));
 
-    const categories: AnalysisCategory[] = ['security', 'integration', 'monitoring', 'lifecycle'];
+    const categories: AnalysisCategoryUI[] = ['security', 'integration', 'monitoring', 'lifecycle'];
     let completedCount = 0;
 
     try {
@@ -543,6 +543,55 @@ const Index = () => {
                 </CollapsibleContent>
               </Collapsible>
             </Card>
+
+            {/* Service-Kontext Card (read-only JSON preview) */}
+            {(selectedServiceDetails || serviceDetails) && (
+              <Card className="border-border/50">
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4 text-primary" />
+                          Service-Kontext (aus Metadaten)
+                        </div>
+                        <ChevronDown className="w-4 h-4" />
+                      </CardTitle>
+                      <CardDescription>
+                        Diese Informationen werden automatisch an die KI übergeben.
+                      </CardDescription>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <ScrollArea className="h-[250px]">
+                        <pre className="text-xs font-mono bg-muted/30 p-4 rounded whitespace-pre-wrap">
+                          {JSON.stringify(
+                            {
+                              serviceName: selectedService?.displayName,
+                              description: selectedService?.description,
+                              links: (selectedServiceDetails || serviceDetails)?.links?.filter(l => l.value?.startsWith('http')).map(l => ({
+                                classification: l.classification,
+                                text: l.text || l.classification,
+                                url: l.value,
+                              })),
+                              servicePlans: (selectedServiceDetails || serviceDetails)?.servicePlans?.map(p => ({
+                                name: p.displayName,
+                                isFree: p.isFree,
+                                regions: p.dataCenters?.map(dc => dc.displayName) || [],
+                              })),
+                              supportComponents: (selectedServiceDetails || serviceDetails)?.supportComponents,
+                            },
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </ScrollArea>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            )}
               
             {/* Progress indicator */}
             {isAnalyzing && (
