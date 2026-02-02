@@ -44,7 +44,7 @@ import {
   type ServiceInventoryItem,
   type ServiceLink
 } from "@/lib/sap-services";
-import { firecrawlApi } from "@/lib/api/firecrawl";
+import { firecrawlApi, type ScrapeResult } from "@/lib/api/firecrawl";
 
 // Typ für UI-Links mit Selection-State
 interface DiscoveredUrl {
@@ -109,11 +109,18 @@ const Index = () => {
   const [discoveredUrls, setDiscoveredUrls] = useState<DiscoveredUrl[]>([]);
   const [mapProgress, setMapProgress] = useState(0);
   
-  // Firecrawl States
+  // Firecrawl Map States
   const [firecrawlUrls, setFirecrawlUrls] = useState<string[]>([]);
   const [isFirecrawling, setIsFirecrawling] = useState(false);
   const [firecrawlProgress, setFirecrawlProgress] = useState(0);
   const [firecrawlError, setFirecrawlError] = useState<string | null>(null);
+  
+  // Crawling/Scrape States (Step 3)
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlProgress, setCrawlProgress] = useState(0);
+  const [crawlResults, setCrawlResults] = useState<ScrapeResult[]>([]);
+  const [currentCrawlUrl, setCurrentCrawlUrl] = useState<string | null>(null);
+  const [crawlComplete, setCrawlComplete] = useState(false);
 
   // Live-Daten vom SAP GitHub Repository laden
   const { 
@@ -299,6 +306,62 @@ const Index = () => {
       setIsFirecrawling(false);
     }
   };
+
+  // Crawl (Scrape) selected URLs
+  const startCrawling = async () => {
+    const selectedUrls = discoveredUrls.filter(u => u.selected).map(u => u.url);
+    
+    if (selectedUrls.length === 0) {
+      toast({
+        title: "Keine URLs ausgewählt",
+        description: "Bitte wählen Sie mindestens eine URL zum Crawlen aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCrawling(true);
+    setCrawlProgress(0);
+    setCrawlResults([]);
+    setCurrentCrawlUrl(null);
+    setCrawlComplete(false);
+
+    try {
+      const results = await firecrawlApi.scrapeMultiple(
+        selectedUrls,
+        { formats: ['markdown'], onlyMainContent: true },
+        (completed, total, current, result) => {
+          setCrawlProgress(Math.round((completed / total) * 100));
+          setCurrentCrawlUrl(current);
+          setCrawlResults(prev => [...prev, result]);
+        }
+      );
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      setCrawlComplete(true);
+      toast({
+        title: "Crawling abgeschlossen",
+        description: `${successCount} URLs erfolgreich, ${failCount} fehlgeschlagen`,
+      });
+    } catch (error) {
+      toast({
+        title: "Crawling Fehler",
+        description: error instanceof Error ? error.message : "Unbekannter Fehler",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCrawling(false);
+    }
+  };
+
+  // Auto-start crawling when entering Step 3
+  useEffect(() => {
+    if (currentStep === 3 && !isCrawling && crawlResults.length === 0 && !crawlComplete) {
+      startCrawling();
+    }
+  }, [currentStep]);
 
   const toggleUrl = (index: number) => {
     setDiscoveredUrls((prev) =>
@@ -991,62 +1054,208 @@ const Index = () => {
         {currentStep === 3 && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">Dokumentation wird gecrawlt</h2>
+              <h2 className="text-3xl font-semibold mb-2">
+                {crawlComplete ? "Crawling abgeschlossen" : "Dokumentation wird gecrawlt"}
+              </h2>
               <p className="text-muted-foreground">
-                Firecrawl extrahiert die Inhalte der ausgewählten URLs
+                {crawlComplete 
+                  ? `${crawlResults.filter(r => r.success).length} von ${crawlResults.length} Seiten erfolgreich extrahiert`
+                  : "Firecrawl extrahiert die Inhalte der ausgewählten URLs"
+                }
               </p>
             </div>
 
+            {/* Progress Card */}
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <Search className="w-5 h-5 text-primary animate-pulse" />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    crawlComplete ? "bg-green-500/20" : "bg-orange-500/20"
+                  }`}>
+                    {crawlComplete ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <Flame className="w-5 h-5 text-orange-500 animate-pulse" />
+                    )}
                   </div>
-                  Crawling läuft...
+                  {crawlComplete 
+                    ? "Crawling erfolgreich" 
+                    : isCrawling 
+                    ? "Crawling läuft..." 
+                    : "Crawling starten"}
                 </CardTitle>
+                <CardDescription>
+                  {currentCrawlUrl && !crawlComplete && (
+                    <span className="truncate block">
+                      Aktuell: {currentCrawlUrl}
+                    </span>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Progress Bar */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Fortschritt</span>
-                    <span className="text-primary font-medium">Demo</span>
+                    <span className="text-muted-foreground">
+                      {crawlResults.length} von {discoveredUrls.filter(u => u.selected).length} URLs
+                    </span>
+                    <span className={`font-medium ${crawlComplete ? "text-green-500" : "text-orange-500"}`}>
+                      {crawlProgress}%
+                    </span>
                   </div>
-                  <Progress value={65} className="h-2" />
+                  <Progress value={crawlProgress} className="h-2" />
                 </div>
 
-                <div className="space-y-2">
-                  {discoveredUrls
-                    .filter((u) => u.selected)
-                    .slice(0, 5)
-                    .map((url, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
-                      >
-                        {i < 3 ? (
-                          <Check className="w-4 h-4 text-primary" />
-                        ) : i === 3 ? (
-                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                        ) : (
-                          <div className="w-4 h-4 rounded-full border border-muted-foreground" />
-                        )}
-                        <span className="text-sm truncate flex-1">{url.url}</span>
-                      </div>
-                    ))}
-                </div>
+                {/* Stats */}
+                {crawlResults.length > 0 && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="p-4 rounded-xl bg-muted/50 text-center">
+                      <p className="text-2xl font-semibold text-primary">{crawlResults.length}</p>
+                      <p className="text-xs text-muted-foreground">Verarbeitet</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-green-500/10 text-center">
+                      <p className="text-2xl font-semibold text-green-500">
+                        {crawlResults.filter(r => r.success).length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Erfolgreich</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-destructive/10 text-center">
+                      <p className="text-2xl font-semibold text-destructive">
+                        {crawlResults.filter(r => !r.success).length}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Fehlgeschlagen</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {/* URL Results List */}
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Crawling-Ergebnisse
+                </CardTitle>
+                <CardDescription>
+                  Status und extrahierter Inhalt jeder URL
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[400px] pr-4">
+                  <div className="space-y-3">
+                    {/* Pending URLs */}
+                    {discoveredUrls
+                      .filter(u => u.selected)
+                      .map((urlItem, i) => {
+                        const result = crawlResults.find(r => r.url === urlItem.url);
+                        const isCurrentlyCrawling = currentCrawlUrl === urlItem.url && isCrawling;
+                        
+                        return (
+                          <div
+                            key={i}
+                            className={`p-4 rounded-lg border transition-all ${
+                              result?.success
+                                ? "border-green-500/30 bg-green-500/5"
+                                : result && !result.success
+                                ? "border-destructive/30 bg-destructive/5"
+                                : isCurrentlyCrawling
+                                ? "border-orange-500/50 bg-orange-500/5"
+                                : "border-border/50 bg-muted/30"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              {/* Status Icon */}
+                              <div className="mt-0.5">
+                                {result?.success ? (
+                                  <Check className="w-5 h-5 text-green-500" />
+                                ) : result && !result.success ? (
+                                  <AlertCircle className="w-5 h-5 text-destructive" />
+                                ) : isCurrentlyCrawling ? (
+                                  <Loader2 className="w-5 h-5 text-orange-500 animate-spin" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full border-2 border-muted-foreground/30" />
+                                )}
+                              </div>
+                              
+                              {/* URL Info */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate mb-1">
+                                  {urlItem.text || urlItem.url.split('/').pop() || urlItem.url}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {urlItem.url}
+                                </p>
+                                
+                                {/* Error Message */}
+                                {result && !result.success && result.error && (
+                                  <p className="text-xs text-destructive mt-2">
+                                    Fehler: {result.error}
+                                  </p>
+                                )}
+                                
+                                {/* Content Preview */}
+                                {result?.success && result.data?.markdown && (
+                                  <div className="mt-3 p-3 rounded-md bg-background/50 border border-border/30">
+                                    <p className="text-xs text-muted-foreground mb-1">
+                                      Extrahierter Inhalt ({result.data.markdown.length} Zeichen):
+                                    </p>
+                                    <p className="text-xs line-clamp-3">
+                                      {result.data.markdown.substring(0, 300)}
+                                      {result.data.markdown.length > 300 && "..."}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Metadata */}
+                                {result?.success && result.data?.metadata?.title && (
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {result.data.metadata.title.substring(0, 50)}
+                                      {result.data.metadata.title.length > 50 && "..."}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* External Link */}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="shrink-0"
+                                onClick={() => window.open(urlItem.url, "_blank")}
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+
+            {/* Navigation */}
             <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(2)} className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setCrawlResults([]);
+                  setCrawlProgress(0);
+                  setCrawlComplete(false);
+                  setCurrentStep(2);
+                }} 
+                className="gap-2"
+              >
                 Zurück
               </Button>
               <Button
                 onClick={() => setCurrentStep(4)}
+                disabled={!crawlComplete}
                 className="gap-2 nagarro-gradient text-background nagarro-glow"
               >
-                Zur Basis-Analyse
+                {crawlComplete ? "Zur Basis-Analyse" : "Crawling läuft..."}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
