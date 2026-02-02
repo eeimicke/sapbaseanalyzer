@@ -7,13 +7,17 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalysisPrompt } from "@/hooks/use-analysis-prompt";
 import { 
   Search, 
   Database, 
   Bot, 
   FileText,
   ChevronRight,
+  ChevronDown,
   Check,
   Loader2,
   Shield,
@@ -29,7 +33,9 @@ import {
   BookOpen,
   AlertCircle,
   Globe,
-  Github
+  Github,
+  Settings,
+  Save
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
 import { 
@@ -80,6 +86,18 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDark, setIsDark] = useState(true);
+
+  // Prompt State
+  const { prompt, isLoading: isLoadingPrompt, isSaving: isSavingPrompt, savePrompt } = useAnalysisPrompt();
+  const [editedPrompt, setEditedPrompt] = useState<string>("");
+  const [isPromptOpen, setIsPromptOpen] = useState(false);
+
+  // Sync prompt when loaded
+  useEffect(() => {
+    if (prompt?.prompt_text) {
+      setEditedPrompt(prompt.prompt_text);
+    }
+  }, [prompt]);
 
   // Analysis States (Step 2)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -443,36 +461,113 @@ const Index = () => {
 
         {/* Step 2: AI Analysis */}
         {currentStep === 2 && (
-          <div className="space-y-8 max-w-5xl mx-auto">
-            <div className="text-center mb-6">
+          <div className="space-y-6 max-w-5xl mx-auto">
+            <div className="text-center mb-4">
               <h2 className="text-3xl font-semibold mb-2">SAP Basis-Analyse</h2>
               <p className="text-muted-foreground">
                 Perplexity AI recherchiert im Web für {selectedService?.displayName || "den Service"}
               </p>
+            </div>
+
+            {/* Editable Prompt Section */}
+            <Card className="border-border/50">
+              <Collapsible open={isPromptOpen} onOpenChange={setIsPromptOpen}>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer hover:bg-muted/30 transition-colors">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <div className="flex items-center gap-2">
+                        <Settings className="w-4 h-4 text-primary" />
+                        Analyse-Prompt
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {prompt && (
+                          <Badge variant="outline" className="text-xs">
+                            Zuletzt aktualisiert: {new Date(prompt.updated_at).toLocaleDateString("de-DE")}
+                          </Badge>
+                        )}
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isPromptOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </CardTitle>
+                    <CardDescription>
+                      Dieser Prompt wird für die KI-Analyse verwendet. Klicken zum Bearbeiten.
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="pt-0 space-y-4">
+                    {isLoadingPrompt ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-4/6" />
+                      </div>
+                    ) : (
+                      <>
+                        <Textarea
+                          value={editedPrompt}
+                          onChange={(e) => setEditedPrompt(e.target.value)}
+                          className="min-h-[300px] font-mono text-xs bg-muted/30"
+                          placeholder="Analyse-Prompt eingeben..."
+                        />
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            {editedPrompt.length} Zeichen
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditedPrompt(prompt?.prompt_text || "")}
+                              disabled={editedPrompt === prompt?.prompt_text}
+                            >
+                              Zurücksetzen
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => savePrompt(editedPrompt)}
+                              disabled={isSavingPrompt || editedPrompt === prompt?.prompt_text}
+                              className="gap-2"
+                            >
+                              {isSavingPrompt ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Save className="w-3 h-3" />
+                              )}
+                              Speichern
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
               
-              {/* Progress indicator */}
-              {isAnalyzing && (
-                <div className="mt-4 max-w-md mx-auto">
-                  <Progress value={analysisProgress} className="h-2" />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {currentAnalysisCategory 
-                      ? `Analysiere: ${basisCategories.find(c => c.id === currentAnalysisCategory)?.name || currentAnalysisCategory}`
-                      : `${analysisProgress}% abgeschlossen`
-                    }
-                  </p>
-                </div>
-              )}
-              
-              {/* Service links info */}
-              {serviceDetails?.links && (
-                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 text-sm">
+            {/* Progress indicator */}
+            {isAnalyzing && (
+              <div className="max-w-md mx-auto text-center">
+                <Progress value={analysisProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {currentAnalysisCategory 
+                    ? `Analysiere: ${basisCategories.find(c => c.id === currentAnalysisCategory)?.name || currentAnalysisCategory}`
+                    : `${analysisProgress}% abgeschlossen`
+                  }
+                </p>
+              </div>
+            )}
+            
+            {/* Service links info */}
+            {(serviceDetails?.links || selectedServiceDetails?.links) && (
+              <div className="text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 text-sm">
                   <Link2 className="w-4 h-4 text-primary" />
                   <span>
-                    {serviceDetails.links.filter(l => l.value?.startsWith('http')).length} Dokumentationslinks als Recherchekontext
+                    {(selectedServiceDetails?.links || serviceDetails?.links || []).filter(l => l.value?.startsWith('http')).length} Dokumentationslinks als Recherchekontext
                   </span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {basisCategories.map((category) => {
