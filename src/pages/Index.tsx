@@ -99,15 +99,7 @@ const urlTypeLabels: Record<string, string> = {
   pricing: "Preise",
 };
 
-// Hauptkategorien für die Tabs
-const mainCategories = [
-  { value: "all", label: "Alle" },
-  { value: "Integration", label: "Integration" },
-  { value: "AI", label: "AI" },
-  { value: "Data & Analytics", label: "Data" },
-  { value: "Security", label: "Security" },
-  { value: "Extension Suite", label: "Extension" },
-];
+// Hauptkategorien werden dynamisch aus den Daten extrahiert
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -332,10 +324,11 @@ const Index = () => {
                 />
               </div>
               <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-auto">
-                <TabsList className="bg-muted/50">
-                  {mainCategories.map((cat) => (
-                    <TabsTrigger key={cat.value} value={cat.value}>
-                      {cat.label}
+                <TabsList className="bg-muted/50 flex-wrap h-auto">
+                  <TabsTrigger value="all">Alle</TabsTrigger>
+                  {availableCategories.slice(0, 5).map((cat) => (
+                    <TabsTrigger key={cat} value={cat}>
+                      {cat.length > 15 ? cat.substring(0, 15) + "…" : cat}
                     </TabsTrigger>
                   ))}
                 </TabsList>
