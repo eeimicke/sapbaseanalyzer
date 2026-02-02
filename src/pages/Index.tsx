@@ -31,7 +31,8 @@ import {
   BookOpen,
   Settings,
   AlertCircle,
-  Globe
+  Globe,
+  Github
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
 import { 
@@ -435,6 +436,16 @@ const Index = () => {
                       <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
                         {service.category}
                       </Badge>
+                      <a
+                        href={`https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${service.technicalId}.json`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        title="JSON auf GitHub ansehen"
+                      >
+                        <Github className="w-4 h-4" />
+                      </a>
                     </div>
                     <CardTitle className="text-lg line-clamp-1">{service.displayName}</CardTitle>
                     <CardDescription className="text-sm line-clamp-2">
