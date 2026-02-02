@@ -40,6 +40,7 @@ import {
   type ServiceInventoryItem
 } from "@/lib/sap-services";
 import { perplexityApi, type AnalysisCategory, type AnalysisResponse, type ServiceLink } from "@/lib/api/perplexity";
+import { ServiceCard } from "@/components/ServiceCard";
 
 const steps = [
   { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
@@ -395,37 +396,12 @@ const Index = () => {
 
               {/* Services */}
               {!isLoadingServices && !isServicesError && filteredServices.map((service) => (
-                <Card
+                <ServiceCard
                   key={service.technicalId}
-                  className={`cursor-pointer transition-all hover:border-primary/50 ${
-                    selectedService?.technicalId === service.technicalId
-                      ? "border-primary ring-2 ring-primary/20"
-                      : "border-border/50"
-                  }`}
-                  onClick={() => setSelectedService(service)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        {service.category || "Service"}
-                      </Badge>
-                      {selectedService?.technicalId === service.technicalId && (
-                        <div className="w-5 h-5 rounded-full nagarro-gradient flex items-center justify-center">
-                          <Check className="w-3 h-3 text-background" />
-                        </div>
-                      )}
-                    </div>
-                    <CardTitle className="text-base leading-tight">{service.displayName}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-2">
-                      {service.description || "Keine Beschreibung verfügbar"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <code className="bg-muted px-2 py-1 rounded text-[10px]">{service.technicalId}</code>
-                    </div>
-                  </CardContent>
-                </Card>
+                  service={service}
+                  isSelected={selectedService?.technicalId === service.technicalId}
+                  onSelect={setSelectedService}
+                />
               ))}
 
               {/* Keine Ergebnisse */}
