@@ -3,19 +3,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+interface ServiceLink {
+  classification: string;
+  text: string;
+  value: string;
+}
+
 interface AnalysisRequest {
   serviceName: string;
   serviceDescription: string;
-  crawledContent: Array<{
-    url: string;
-    markdown: string;
-    title?: string;
-  }>;
+  serviceLinks: ServiceLink[];
   category: 'security' | 'integration' | 'monitoring' | 'lifecycle';
 }
 
 const categoryPrompts: Record<string, string> = {
-  security: `Du bist ein SAP Basis-Experte. Analysiere die bereitgestellte Dokumentation und erstelle eine strukturierte Analyse für den Bereich "Berechtigungen & Security".
+  security: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Berechtigungen & Security" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Erforderliche Rollen und Berechtigungen
@@ -24,9 +26,10 @@ Fokussiere auf:
 - Compliance-Anforderungen
 - Sicherheitsempfehlungen
 
+Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  integration: `Du bist ein SAP Basis-Experte. Analysiere die bereitgestellte Dokumentation und erstelle eine strukturierte Analyse für den Bereich "Integration & Konnektivität".
+  integration: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Integration & Konnektivität" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Erforderliche Verbindungen (Destinations, Connectivity)
@@ -35,9 +38,10 @@ Fokussiere auf:
 - Netzwerk-Anforderungen
 - Abhängigkeiten zu anderen Services
 
+Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  monitoring: `Du bist ein SAP Basis-Experte. Analysiere die bereitgestellte Dokumentation und erstelle eine strukturierte Analyse für den Bereich "Monitoring & Operations".
+  monitoring: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Monitoring & Operations" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Monitoring-Möglichkeiten
@@ -46,9 +50,10 @@ Fokussiere auf:
 - Performance-Metriken
 - Troubleshooting-Hinweise
 
+Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  lifecycle: `Du bist ein SAP Basis-Experte. Analysiere die bereitgestellte Dokumentation und erstelle eine strukturierte Analyse für den Bereich "Lifecycle Management".
+  lifecycle: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Lifecycle Management" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Update- und Upgrade-Prozesse
@@ -57,6 +62,7 @@ Fokussiere auf:
 - Skalierung
 - Deprecation-Hinweise
 
+Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 };
 
@@ -66,7 +72,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { serviceName, serviceDescription, crawledContent, category }: AnalysisRequest = await req.json();
+    const { serviceName, serviceDescription, serviceLinks, category }: AnalysisRequest = await req.json();
 
     if (!serviceName || !category) {
       return new Response(
@@ -92,22 +98,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Combine crawled content into a single context
-    const contentContext = crawledContent && crawledContent.length > 0
-      ? crawledContent
-          .filter(c => c.markdown && c.markdown.length > 0)
-          .map(c => `### Quelle: ${c.title || c.url}\n\n${c.markdown.substring(0, 8000)}`)
-          .join('\n\n---\n\n')
-      : 'Keine gecrawlten Inhalte verfügbar.';
+    // Format service links as context
+    const linksContext = serviceLinks && serviceLinks.length > 0
+      ? serviceLinks
+          .filter(l => l.value?.startsWith('http'))
+          .map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`)
+          .join('\n')
+      : 'Keine Links verfügbar.';
 
     const userMessage = `Analysiere den SAP BTP Service "${serviceName}".
 
 Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
 
-Dokumentation:
-${contentContext.substring(0, 25000)}
+Relevante Dokumentationslinks:
+${linksContext}
 
-Bitte erstelle eine detaillierte Analyse für diesen Service.`;
+Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und erstelle eine detaillierte Analyse. Nutze die obigen Links als Ausgangspunkt.`;
 
     console.log(`Analyzing ${serviceName} for category: ${category}`);
 
