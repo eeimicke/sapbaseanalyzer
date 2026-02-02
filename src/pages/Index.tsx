@@ -37,7 +37,6 @@ import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services
 import { 
   filterServices, 
   extractCategories, 
-  buildDiscoveryCenterFallbackUrl,
   linkClassifications,
   type ServiceInventoryItem,
   type ServiceLink
@@ -112,14 +111,24 @@ const Index = () => {
     refetch: refetchServices 
   } = useServiceInventory();
 
-  // Service-Details laden wenn ein Service ausgewählt ist UND wir auf Schritt 2 sind
+  // Service-Details laden sobald ein Service ausgewählt wird (auch schon in Schritt 1)
   const {
     data: serviceDetails,
     isLoading: isLoadingDetails,
     isError: isDetailsError,
     error: detailsError,
     refetch: refetchDetails
-  } = useServiceDetails(currentStep >= 2 ? selectedService?.technicalId ?? null : null);
+  } = useServiceDetails(selectedService?.technicalId ?? null);
+
+  // Discovery Center URL aus den echten Service-Details extrahieren
+  const discoveryUrl = useMemo(() => {
+    if (!serviceDetails?.links) return null;
+    const dcLink = serviceDetails.links.find(link => 
+      link.classification === "Discovery Center" && 
+      !link.value.includes("index.html#")
+    );
+    return dcLink?.value ?? null;
+  }, [serviceDetails]);
 
   // Gefilterte Services basierend auf Suche und Kategorie
   const filteredServices = useMemo(() => {
@@ -419,18 +428,36 @@ const Index = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="w-full gap-2 text-muted-foreground hover:text-primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        window.open(buildDiscoveryCenterFallbackUrl(service.displayName), "_blank");
-                      }}
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      SAP Discovery Center
-                    </Button>
+                    {/* Discovery Center Link - zeigt Loader wenn ausgewählt und lädt, echten Link wenn geladen */}
+                    {selectedService?.technicalId === service.technicalId ? (
+                      isLoadingDetails ? (
+                        <div className="flex items-center justify-center gap-2 h-9 text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-sm">Lade Links...</span>
+                        </div>
+                      ) : discoveryUrl ? (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="w-full gap-2 text-primary hover:text-primary/80"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(discoveryUrl, "_blank");
+                          }}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          SAP Discovery Center
+                        </Button>
+                      ) : (
+                        <p className="text-center text-xs text-muted-foreground py-2">
+                          Kein Discovery Center Link verfügbar
+                        </p>
+                      )
+                    ) : (
+                      <p className="text-center text-xs text-muted-foreground py-2">
+                        Klicken zum Auswählen
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
