@@ -421,18 +421,6 @@ const Index = () => {
               )}
             </div>
 
-            {/* Weiter-Button */}
-            {selectedService && (
-              <div className="flex justify-center pt-4">
-                <Button 
-                  onClick={() => setCurrentStep(2)} 
-                  className="gap-2 h-12 px-8 nagarro-gradient text-background font-medium nagarro-glow"
-                >
-                  Analyse starten für "{selectedService.displayName}"
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
           </div>
         )}
 
