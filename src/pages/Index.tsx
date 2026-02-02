@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Search, 
   Database, 
@@ -28,19 +29,19 @@ import {
   Link2,
   FileCode,
   BookOpen,
-  Settings
+  Settings,
+  AlertCircle,
+  Globe
 } from "lucide-react";
+import { useServiceInventory } from "@/hooks/use-sap-services";
+import { 
+  filterServices, 
+  extractCategories, 
+  getDiscoveryCenterUrl,
+  type ServiceInventoryItem 
+} from "@/lib/sap-services";
 
-const mockServices = [
-  { id: 1, name: "SAP Integration Suite", category: "Integration", description: "Integrationsplattform für Cloud und On-Premise", pricing: "Subscription" },
-  { id: 2, name: "SAP AI Core", category: "AI", description: "Machine Learning und AI-Infrastruktur", pricing: "Pay-per-Use" },
-  { id: 3, name: "SAP HANA Cloud", category: "Data & Analytics", description: "In-Memory Datenbank als Service", pricing: "Subscription" },
-  { id: 4, name: "SAP Build Work Zone", category: "Application Development", description: "Unified Launchpad und Digital Workplace", pricing: "Subscription" },
-  { id: 5, name: "SAP Cloud Identity Services", category: "Security", description: "Identity & Access Management", pricing: "Included" },
-  { id: 6, name: "SAP Connectivity Service", category: "Integration", description: "Cloud Connector und Destination Management", pricing: "Included" },
-];
-
-// Mock discovered URLs für Demo
+// Mock discovered URLs für Demo (wird später durch echte Daten ersetzt)
 const mockDiscoveredUrls = [
   { url: "https://discovery-center.cloud.sap/serviceCatalog/integration-suite", type: "main", selected: true },
   { url: "https://help.sap.com/docs/integration-suite", type: "docs", selected: true },
@@ -98,14 +99,46 @@ const urlTypeLabels: Record<string, string> = {
   pricing: "Preise",
 };
 
+// Hauptkategorien für die Tabs
+const mainCategories = [
+  { value: "all", label: "Alle" },
+  { value: "Integration", label: "Integration" },
+  { value: "AI", label: "AI" },
+  { value: "Data & Analytics", label: "Data" },
+  { value: "Security", label: "Security" },
+  { value: "Extension Suite", label: "Extension" },
+];
+
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<typeof mockServices[0] | null>(null);
+  const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
   const [isDark, setIsDark] = useState(true);
   const [discoveredUrls, setDiscoveredUrls] = useState(mockDiscoveredUrls);
   const [mapProgress, setMapProgress] = useState(0);
   const [isMapping, setIsMapping] = useState(false);
+
+  // Live-Daten vom SAP GitHub Repository laden
+  const { 
+    data: services, 
+    isLoading: isLoadingServices, 
+    isError: isServicesError,
+    error: servicesError,
+    refetch: refetchServices 
+  } = useServiceInventory();
+
+  // Gefilterte Services basierend auf Suche und Kategorie
+  const filteredServices = useMemo(() => {
+    if (!services) return [];
+    return filterServices(services, searchQuery, selectedCategory);
+  }, [services, searchQuery, selectedCategory]);
+
+  // Verfügbare Kategorien aus den Daten extrahieren
+  const availableCategories = useMemo(() => {
+    if (!services) return [];
+    return extractCategories(services);
+  }, [services]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
@@ -141,10 +174,22 @@ const Index = () => {
 
   const selectedUrlCount = discoveredUrls.filter((u) => u.selected).length;
 
-  const filteredServices = mockServices.filter(
-    (service) =>
-      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      service.category.toLowerCase().includes(searchQuery.toLowerCase())
+  // Skeleton-Komponente für Ladezustand
+  const ServiceCardSkeleton = () => (
+    <Card className="border-border/50">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between mb-2">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-5 w-16" />
+        </div>
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-9 w-full" />
+      </CardContent>
+    </Card>
   );
 
   return (
@@ -165,8 +210,9 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Badge variant="outline" className="text-xs border-primary/30 text-primary">
-                WIREFRAME
+              <Badge variant="outline" className="text-xs border-primary/30 text-primary gap-1">
+                <Globe className="w-3 h-3" />
+                LIVE DATA
               </Badge>
               <Button
                 variant="ghost"
@@ -236,9 +282,45 @@ const Index = () => {
           <div className="space-y-8 max-w-6xl mx-auto">
             <div className="text-center mb-10">
               <h2 className="text-3xl font-semibold mb-2">SAP BTP Service auswählen</h2>
-              <p className="text-muted-foreground">Wählen Sie einen Service für die Basis-Analyse</p>
+              <p className="text-muted-foreground mb-2">Wählen Sie einen Service für die Basis-Analyse</p>
+              {/* Info-Box für den Benutzer */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm">
+                <Globe className="w-4 h-4" />
+                <span>
+                  Daten werden direkt vom{" "}
+                  <a 
+                    href="https://github.com/SAP-samples/btp-service-metadata" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="underline hover:no-underline"
+                  >
+                    SAP GitHub Repository
+                  </a>{" "}
+                  geladen
+                </span>
+              </div>
             </div>
 
+            {/* Fehlerbehandlung */}
+            {isServicesError && (
+              <Card className="border-destructive/50 bg-destructive/10">
+                <CardContent className="flex items-center gap-4 py-6">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-destructive">Fehler beim Laden der Services</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {servicesError?.message || "Die Service-Daten konnten nicht geladen werden."}
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => refetchServices()}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Erneut versuchen
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Such- und Filterbereich */}
             <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -249,22 +331,49 @@ const Index = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Tabs defaultValue="all" className="w-auto">
+              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-auto">
                 <TabsList className="bg-muted/50">
-                  <TabsTrigger value="all">Alle</TabsTrigger>
-                  <TabsTrigger value="integration">Integration</TabsTrigger>
-                  <TabsTrigger value="ai">AI</TabsTrigger>
-                  <TabsTrigger value="data">Data</TabsTrigger>
+                  {mainCategories.map((cat) => (
+                    <TabsTrigger key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
               </Tabs>
             </div>
 
+            {/* Service-Anzahl Anzeige */}
+            {!isLoadingServices && services && (
+              <div className="text-center text-sm text-muted-foreground">
+                {filteredServices.length === services.length ? (
+                  <span>{services.length} Services verfügbar</span>
+                ) : (
+                  <span>
+                    {filteredServices.length} von {services.length} Services
+                    {searchQuery && ` für "${searchQuery}"`}
+                    {selectedCategory !== "all" && ` in ${selectedCategory}`}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Service-Karten Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredServices.map((service) => (
+              {/* Ladezustand mit Skeleton-Karten */}
+              {isLoadingServices && (
+                <>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <ServiceCardSkeleton key={i} />
+                  ))}
+                </>
+              )}
+
+              {/* Echte Service-Karten */}
+              {!isLoadingServices && filteredServices.map((service) => (
                 <Card
-                  key={service.id}
+                  key={service.technicalId}
                   className={`cursor-pointer card-hover border-border/50 ${
-                    selectedService?.id === service.id
+                    selectedService?.technicalId === service.technicalId
                       ? "ring-2 ring-primary border-primary nagarro-glow"
                       : "hover:border-primary/30"
                   }`}
@@ -275,23 +384,42 @@ const Index = () => {
                       <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-0">
                         {service.category}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {service.pricing}
-                      </Badge>
                     </div>
-                    <CardTitle className="text-lg">{service.name}</CardTitle>
-                    <CardDescription className="text-sm">{service.description}</CardDescription>
+                    <CardTitle className="text-lg line-clamp-1">{service.displayName}</CardTitle>
+                    <CardDescription className="text-sm line-clamp-2">
+                      {service.description}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="ghost" size="sm" className="w-full gap-2 text-muted-foreground hover:text-primary">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full gap-2 text-muted-foreground hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(getDiscoveryCenterUrl(service.technicalId), "_blank");
+                      }}
+                    >
                       <ExternalLink className="w-4 h-4" />
                       SAP Discovery Center
                     </Button>
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Keine Ergebnisse */}
+              {!isLoadingServices && filteredServices.length === 0 && !isServicesError && (
+                <div className="col-span-full text-center py-12">
+                  <Search className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Keine Services gefunden</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Versuchen Sie einen anderen Suchbegriff oder wählen Sie eine andere Kategorie.
+                  </p>
+                </div>
+              )}
             </div>
 
+            {/* Weiter-Button */}
             {selectedService && (
               <div className="flex justify-center pt-4">
                 <Button 
@@ -301,7 +429,7 @@ const Index = () => {
                   }} 
                   className="gap-2 h-12 px-8 nagarro-gradient text-background font-medium nagarro-glow"
                 >
-                  URLs entdecken für "{selectedService.name}"
+                  URLs entdecken für "{selectedService.displayName}"
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -315,7 +443,7 @@ const Index = () => {
             <div className="text-center mb-6">
               <h2 className="text-3xl font-semibold mb-2">Map Discovery</h2>
               <p className="text-muted-foreground">
-                Alle relevanten URLs für {selectedService?.name || "den Service"} entdecken
+                Alle relevanten URLs für {selectedService?.displayName || "den Service"} entdecken
               </p>
             </div>
 
@@ -405,32 +533,41 @@ const Index = () => {
                             key={index}
                             className={`p-3 rounded-lg border transition-all cursor-pointer ${
                               urlItem.selected
-                                ? "border-primary/30 bg-primary/5"
-                                : "border-border/50 hover:border-border"
+                                ? "border-primary/50 bg-primary/5"
+                                : "border-border/50 hover:border-primary/30"
                             }`}
                             onClick={() => toggleUrl(index)}
                           >
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-center gap-3">
                               <Checkbox
                                 checked={urlItem.selected}
-                                className="mt-1"
                                 onCheckedChange={() => toggleUrl(index)}
                               />
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                                  urlItem.selected ? "bg-primary/20" : "bg-muted"
+                                }`}
+                              >
+                                <IconComponent
+                                  className={`w-4 h-4 ${
+                                    urlItem.selected ? "text-primary" : "text-muted-foreground"
+                                  }`}
+                                />
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <IconComponent className="w-4 h-4 text-primary flex-shrink-0" />
-                                  <Badge variant="secondary" className="text-xs bg-muted">
+                                  <Badge variant="secondary" className="text-xs">
                                     {urlTypeLabels[urlItem.type] || urlItem.type}
                                   </Badge>
                                 </div>
-                                <p className="text-sm text-muted-foreground truncate font-mono">
+                                <p className="text-sm text-muted-foreground truncate">
                                   {urlItem.url}
                                 </p>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="flex-shrink-0 h-8 w-8"
+                                className="shrink-0"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   window.open(urlItem.url, "_blank");
@@ -448,291 +585,211 @@ const Index = () => {
               </Card>
             )}
 
-            <div className="flex gap-3 justify-center pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(1)}>
-                Zurück
-              </Button>
+            {/* Navigation */}
+            <div className="flex justify-between pt-4">
               <Button
-                onClick={() => setCurrentStep(3)}
-                disabled={mapProgress < 100 || selectedUrlCount === 0}
-                className="nagarro-gradient text-background px-8"
+                variant="outline"
+                onClick={() => setCurrentStep(1)}
+                className="gap-2"
               >
-                {selectedUrlCount} URLs crawlen
-                <ChevronRight className="w-4 h-4 ml-2" />
+                Zurück zur Auswahl
               </Button>
+              {mapProgress >= 100 && selectedUrlCount > 0 && (
+                <Button
+                  onClick={() => setCurrentStep(3)}
+                  className="gap-2 nagarro-gradient text-background nagarro-glow"
+                >
+                  {selectedUrlCount} URLs crawlen
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
         )}
 
-        {/* Step 3: Crawling */}
+        {/* Step 3: Crawling Progress */}
         {currentStep === 3 && (
-          <div className="max-w-xl mx-auto space-y-6">
+          <div className="space-y-8 max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-semibold mb-2">Dokumentation wird gecrawlt</h2>
+              <p className="text-muted-foreground">
+                Firecrawl extrahiert die Inhalte der ausgewählten URLs
+              </p>
+            </div>
+
             <Card className="border-border/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center">
-                    <Search className="w-5 h-5 text-background" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                    <Search className="w-5 h-5 text-primary animate-pulse" />
                   </div>
-                  {selectedUrlCount} URLs werden gecrawlt...
+                  Crawling läuft...
                 </CardTitle>
-                <CardDescription>
-                  Inhalte werden extrahiert und für die KI-Analyse vorbereitet
-                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-8">
+              <CardContent className="space-y-6">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Fortschritt</span>
-                    <span className="text-primary font-medium">67%</span>
+                    <span className="text-primary font-medium">Demo</span>
                   </div>
-                  <Progress value={67} className="h-2" />
+                  <Progress value={65} className="h-2" />
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {discoveredUrls
                     .filter((u) => u.selected)
-                    .slice(0, 4)
-                    .map((url, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            index < 2
-                              ? "bg-primary/20 text-primary"
-                              : index === 2
-                              ? "bg-muted"
-                              : "border border-border"
-                          }`}
-                        >
-                          {index < 2 ? (
-                            <Check className="w-3 h-3" />
-                          ) : index === 2 ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : null}
-                        </div>
-                        <span
-                          className={`text-sm truncate ${
-                            index < 2 ? "text-primary" : "text-muted-foreground"
-                          }`}
-                        >
-                          {url.url.replace("https://", "").substring(0, 50)}...
-                        </span>
+                    .slice(0, 5)
+                    .map((url, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30"
+                      >
+                        {i < 3 ? (
+                          <Check className="w-4 h-4 text-primary" />
+                        ) : i === 3 ? (
+                          <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                        ) : (
+                          <div className="w-4 h-4 rounded-full border border-muted-foreground" />
+                        )}
+                        <span className="text-sm truncate flex-1">{url.url}</span>
                       </div>
                     ))}
-                  {selectedUrlCount > 4 && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      +{selectedUrlCount - 4} weitere URLs
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setCurrentStep(2)} className="flex-1">
-                    Zurück
-                  </Button>
-                  <Button
-                    onClick={() => setCurrentStep(4)}
-                    className="flex-1 nagarro-gradient text-background"
-                  >
-                    Weiter zur Analyse
-                  </Button>
                 </div>
               </CardContent>
             </Card>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep(2)} className="gap-2">
+                Zurück
+              </Button>
+              <Button
+                onClick={() => setCurrentStep(4)}
+                className="gap-2 nagarro-gradient text-background nagarro-glow"
+              >
+                Zur Basis-Analyse
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Step 4: Basis Analysis */}
+        {/* Step 4: AI Analysis */}
         {currentStep === 4 && (
           <div className="space-y-8 max-w-5xl mx-auto">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">KI-gestützte Basis-Analyse</h2>
-              <p className="text-muted-foreground">Perplexity AI identifiziert relevante Themen</p>
+              <h2 className="text-3xl font-semibold mb-2">SAP Basis-Analyse</h2>
+              <p className="text-muted-foreground">
+                Perplexity AI analysiert die Dokumentation für {selectedService?.displayName || "den Service"}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center">
-                      <Bot className="w-5 h-5 text-background" />
-                    </div>
-                    Analyse läuft...
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-5">
-                    {basisCategories.map((category, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <category.icon className={`w-4 h-4 ${category.color}`} />
-                          <span className="text-sm font-medium">{category.name}</span>
-                          <span className="text-xs text-muted-foreground ml-auto">
-                            {index < 2 ? "100%" : index === 2 ? "45%" : "0%"}
-                          </span>
-                        </div>
-                        <Progress value={index < 2 ? 100 : index === 2 ? 45 : 0} className="h-1.5" />
+              {basisCategories.map((category, index) => (
+                <Card key={index} className="border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-lg">
+                      <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center`}>
+                        <category.icon className={`w-5 h-5 ${category.color}`} />
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/50">
-                <CardHeader>
-                  <CardTitle>Gefundene Themen</CardTitle>
-                  <CardDescription>Basis-relevante Einrichtungsthemen</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm">Trust-Konfiguration</span>
-                        <Badge className="bg-red-500/20 text-red-400 border-0">Hoch</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Identity Provider und Trust-Beziehungen einrichten
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-sm">Destination Setup</span>
-                        <Badge className="bg-blue-500/20 text-blue-400 border-0">Mittel</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Backend-Verbindungen konfigurieren
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-muted border border-border">
-                      <div className="flex items-center gap-2">
+                      {category.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 text-sm">
                         <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        <span className="text-sm text-muted-foreground">
-                          Weitere Themen werden analysiert...
-                        </span>
+                        <span className="text-muted-foreground">Analysiere...</span>
+                      </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                        <Skeleton className="h-4 w-4/6" />
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
 
-            <div className="flex gap-3 justify-center pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(3)}>
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep(3)} className="gap-2">
                 Zurück
               </Button>
-              <Button onClick={() => setCurrentStep(5)} className="nagarro-gradient text-background px-8">
-                Weiter zur Kostenabschätzung
+              <Button
+                onClick={() => setCurrentStep(5)}
+                className="gap-2 nagarro-gradient text-background nagarro-glow"
+              >
+                Zur Kostenanalyse
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 5: Cost Estimation */}
+        {/* Step 5: Cost Analysis */}
         {currentStep === 5 && (
-          <div className="space-y-8 max-w-5xl mx-auto">
+          <div className="space-y-8 max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">Kostenabschätzung</h2>
-              <p className="text-muted-foreground">Total Cost of Ownership Analyse</p>
+              <h2 className="text-3xl font-semibold mb-2">Kostenanalyse</h2>
+              <p className="text-muted-foreground">
+                TCO-Berechnung für {selectedService?.displayName || "den Service"}
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <Card className="border-border/50 card-hover">
-                <CardHeader className="pb-2">
-                  <CardDescription className="text-xs uppercase tracking-wider">Einmalkosten</CardDescription>
-                  <CardTitle className="text-4xl font-light">
-                    <span className="text-primary">~15</span>
-                    <span className="text-lg ml-1 text-muted-foreground">PT</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Implementierung & Schulung</p>
-                </CardContent>
-              </Card>
-              <Card className="border-border/50 card-hover">
-                <CardHeader className="pb-2">
-                  <CardDescription className="text-xs uppercase tracking-wider">Monatliche Kosten</CardDescription>
-                  <CardTitle className="text-4xl font-light">
-                    <span className="text-primary">~€2.500</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Lizenz + Betrieb</p>
-                </CardContent>
-              </Card>
-              <Card className="border-primary/30 nagarro-glow card-hover">
-                <CardHeader className="pb-2">
-                  <CardDescription className="text-xs uppercase tracking-wider text-primary">
-                    TCO (3 Jahre)
-                  </CardDescription>
-                  <CardTitle className="text-4xl font-light">
-                    <span className="text-primary">~€105.000</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground">Total Cost of Ownership</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="border-border/50">
-                <CardHeader>
-                  <CardTitle className="text-lg">Implementierungsaufwand</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardDescription>Lizenzkosten (p.a.)</CardDescription>
+                  <CardTitle className="text-2xl text-primary">€ --,--</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-sm text-muted-foreground">Einrichtung & Konfiguration</span>
-                      <span className="font-medium">8 PT</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-sm text-muted-foreground">Schulung Basis-Team</span>
-                      <span className="font-medium">3 PT</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-sm text-muted-foreground">Testing & Abnahme</span>
-                      <span className="font-medium">4 PT</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="font-medium">Gesamt</span>
-                      <span className="font-semibold text-primary">15 PT</span>
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground">Basierend auf Service-Plans</p>
                 </CardContent>
               </Card>
 
               <Card className="border-border/50">
-                <CardHeader>
-                  <CardTitle className="text-lg">Laufende Kosten</CardTitle>
+                <CardHeader className="pb-2">
+                  <CardDescription>Basis-Aufwand</CardDescription>
+                  <CardTitle className="text-2xl text-primary">-- PT</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-sm text-muted-foreground">Subscription (monatlich)</span>
-                      <span className="font-medium">€1.800</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-sm text-muted-foreground">Wartung (~4h/Monat)</span>
-                      <span className="font-medium">€500</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b border-border/50">
-                      <span className="text-sm text-muted-foreground">Monitoring-Tools</span>
-                      <span className="font-medium">€200</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="font-medium">Gesamt / Monat</span>
-                      <span className="font-semibold text-primary">€2.500</span>
-                    </div>
-                  </div>
+                  <p className="text-xs text-muted-foreground">Initiale Einrichtung</p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/50">
+                <CardHeader className="pb-2">
+                  <CardDescription>Laufender Betrieb</CardDescription>
+                  <CardTitle className="text-2xl text-primary">-- PT/Monat</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-muted-foreground">Monitoring & Support</p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="flex gap-3 justify-center pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(4)}>
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle>Kostenaufschlüsselung</CardTitle>
+                <CardDescription>Details werden nach der Analyse berechnet</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                  <p className="text-sm">Diagramm wird nach der vollständigen Analyse angezeigt</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep(4)} className="gap-2">
                 Zurück
               </Button>
-              <Button onClick={() => setCurrentStep(6)} className="nagarro-gradient text-background px-8">
-                Report erstellen
+              <Button
+                onClick={() => setCurrentStep(6)}
+                className="gap-2 nagarro-gradient text-background nagarro-glow"
+              >
+                Zum Report
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -741,123 +798,67 @@ const Index = () => {
         {/* Step 6: Report */}
         {currentStep === 6 && (
           <div className="space-y-8 max-w-4xl mx-auto">
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-semibold mb-2">Analyse-Report</h2>
+              <p className="text-muted-foreground">
+                Zusammenfassung für {selectedService?.displayName || "den Service"}
+              </p>
+            </div>
+
             <Card className="border-border/50">
               <CardHeader>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-xl">{selectedService?.name || "SAP Integration Suite"}</CardTitle>
-                    <CardDescription>
-                      Basis-Analyse Report • {new Date().toLocaleDateString("de-DE")} • {selectedUrlCount} URLs analysiert
-                    </CardDescription>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center nagarro-glow">
+                    <FileText className="w-5 h-5 text-background" />
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <FileText className="w-4 h-4" />
-                      PDF
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Markdown
-                    </Button>
-                  </div>
-                </div>
+                  {selectedService?.displayName || "SAP Service"} - Basis-Analyse
+                </CardTitle>
+                <CardDescription>
+                  Generiert am {new Date().toLocaleDateString("de-DE")}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-8">
-                {/* Executive Summary */}
-                <div className="p-5 rounded-xl border border-primary/20 bg-primary/5">
-                  <h3 className="font-semibold mb-3 text-primary">Executive Summary</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Die {selectedService?.name || "SAP Integration Suite"} erfordert initiale Konfiguration von
-                    Trust-Beziehungen, Destinations und Monitoring. Geschätzter Einrichtungsaufwand:{" "}
-                    <strong className="text-foreground">15 PT</strong>. Monatliche Kosten:{" "}
-                    <strong className="text-foreground">~€2.500</strong>. Empfehlung: Externe Beratung für
-                    initiale Einrichtung empfohlen.
+              <CardContent className="space-y-6">
+                <div className="p-4 rounded-lg bg-muted/30 space-y-4">
+                  <h4 className="font-medium">Zusammenfassung</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Der vollständige Report wird nach Abschluss aller Analyse-Schritte generiert.
+                    Er enthält detaillierte Informationen zu:
                   </p>
+                  <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                    <li>Berechtigungen und Security-Anforderungen</li>
+                    <li>Integration und Konnektivität</li>
+                    <li>Monitoring und Operations</li>
+                    <li>Lifecycle Management</li>
+                    <li>Kostenaufschlüsselung und TCO</li>
+                  </ul>
                 </div>
 
-                {/* Analyzed URLs */}
-                <div>
-                  <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <Link2 className="w-5 h-5 text-primary" />
-                    Analysierte Quellen ({selectedUrlCount})
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {discoveredUrls
-                      .filter((u) => u.selected)
-                      .slice(0, 6)
-                      .map((url, index) => (
-                        <div
-                          key={index}
-                          className="p-3 rounded-lg bg-muted/50 border border-border/50 flex items-center gap-2"
-                        >
-                          <Badge variant="secondary" className="text-xs shrink-0">
-                            {urlTypeLabels[url.type]}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground truncate font-mono">
-                            {url.url.replace("https://", "").substring(0, 35)}...
-                          </span>
-                        </div>
-                      ))}
-                  </div>
-                  {selectedUrlCount > 6 && (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      +{selectedUrlCount - 6} weitere Quellen
-                    </p>
-                  )}
-                </div>
-
-                {/* Basis Topics Overview */}
-                <div>
-                  <h3 className="font-semibold mb-5">Basis-relevante Themen</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {basisCategories.map((category, index) => (
-                      <div key={index} className="p-4 rounded-xl border border-border/50 bg-card">
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                            <category.icon className={`w-4 h-4 ${category.color}`} />
-                          </div>
-                          <span className="font-medium text-sm">{category.name}</span>
-                        </div>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                          <li className="flex items-center gap-2">
-                            <Check className="w-3 h-3 text-primary" />
-                            Beispiel-Thema 1
-                          </li>
-                          <li className="flex items-center gap-2">
-                            <Check className="w-3 h-3 text-primary" />
-                            Beispiel-Thema 2
-                          </li>
-                        </ul>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Cost Summary Chart Placeholder */}
-                <div>
-                  <h3 className="font-semibold mb-4">Kostenübersicht</h3>
-                  <div className="h-48 rounded-xl border border-dashed border-border/50 flex items-center justify-center text-muted-foreground bg-muted/30">
-                    📊 Recharts Kostenvisualisierung
-                  </div>
+                <div className="flex gap-4">
+                  <Button variant="outline" className="flex-1 gap-2">
+                    <FileText className="w-4 h-4" />
+                    Als PDF exportieren
+                  </Button>
+                  <Button variant="outline" className="flex-1 gap-2">
+                    <ExternalLink className="w-4 h-4" />
+                    Teilen
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex gap-3 justify-between">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedService(null);
-                  setDiscoveredUrls(mockDiscoveredUrls);
-                  setMapProgress(0);
-                  setCurrentStep(1);
-                }}
-                className="gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Neue Analyse
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep(5)} className="gap-2">
+                Zurück
               </Button>
-              <Button variant="outline" onClick={() => setCurrentStep(5)}>
-                Zurück zur Kostenabschätzung
+              <Button
+                onClick={() => {
+                  setCurrentStep(1);
+                  setSelectedService(null);
+                  setMapProgress(0);
+                }}
+                className="gap-2 nagarro-gradient text-background nagarro-glow"
+              >
+                Neue Analyse starten
               </Button>
             </div>
           </div>
