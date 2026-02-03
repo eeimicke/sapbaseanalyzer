@@ -325,7 +325,12 @@ const Index = () => {
             <div className="text-center mb-10">
               <h2 className="text-3xl font-semibold mb-2">SAP BTP Service auswählen</h2>
               <p className="text-muted-foreground mb-2">Wählen Sie einen Service für die Basis-Analyse</p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm">
+              <a
+                href="https://github.com/SAP-samples/btp-service-metadata/tree/main/v1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors cursor-pointer"
+              >
                 <Database className="w-4 h-4" />
                 <span>
                   {isLoadingServices 
@@ -335,7 +340,8 @@ const Index = () => {
                     : `${services?.length || 0} Services vom SAP GitHub Repository`
                   }
                 </span>
-              </div>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
 
             {/* Search and Filter */}
