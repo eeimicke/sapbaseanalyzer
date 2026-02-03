@@ -65,8 +65,14 @@ export const perplexityApi = {
     serviceName: string,
     serviceDescription: string,
     serviceDetails: ServiceDetails,
-    basePrompt: string
+    basePrompt: string,
+    fileName?: string
   ): Promise<AnalysisResponse> {
+    // Build GitHub repository URL for the service metadata
+    const githubRepoUrl = fileName 
+      ? `https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${fileName}.json`
+      : null;
+
     // Prepare service links
     const serviceLinks: ServiceLink[] = (serviceDetails.links || [])
       .filter(l => l.value?.startsWith('http'))
@@ -101,6 +107,7 @@ export const perplexityApi = {
         serviceLinks,
         servicePlans,
         supportComponents,
+        githubRepoUrl,
         category: 'full-basis',
         basePrompt,
       },
