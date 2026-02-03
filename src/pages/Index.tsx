@@ -110,23 +110,29 @@ const Index = () => {
     refetch: refetchServices 
   } = useServiceInventory();
 
-  // Service-Details laden sobald ein Service ausgewählt wird
+  // Service-Details laden sobald ein Service ausgewählt wird (nur als Fallback)
   const {
-    data: serviceDetails,
+    data: fetchedServiceDetails,
     isLoading: isLoadingDetails,
     isError: isDetailsError,
     error: detailsError,
   } = useServiceDetails(selectedService?.fileName ?? null);
 
-  // Discovery Center URL aus den echten Service-Details extrahieren
+  // Konsolidierte Service-Details: Bevorzuge die explizit gesetzten, fallback auf gefetched
+  // Dies stellt sicher, dass überall dieselben Daten verwendet werden
+  const activeServiceDetails = useMemo(() => {
+    return selectedServiceDetails || fetchedServiceDetails || null;
+  }, [selectedServiceDetails, fetchedServiceDetails]);
+
+  // Discovery Center URL aus den konsolidierten Service-Details extrahieren
   const discoveryUrl = useMemo(() => {
-    if (!serviceDetails?.links) return null;
-    const dcLink = serviceDetails.links.find(link => 
+    if (!activeServiceDetails?.links) return null;
+    const dcLink = activeServiceDetails.links.find(link => 
       link.classification === "Discovery Center" && 
       !link.value.includes("index.html#")
     );
     return dcLink?.value ?? null;
-  }, [serviceDetails]);
+  }, [activeServiceDetails]);
 
   // Gefilterte Services basierend auf Suche und Kategorie
   const filteredServices = useMemo(() => {
@@ -161,8 +167,7 @@ const Index = () => {
 
   // Start Full-Basis Analysis (einheitlich mit DB-Prompt + vollständigen Service-Metadaten)
   const startAnalysis = async () => {
-    const details = selectedServiceDetails || serviceDetails;
-    if (!selectedService || !details) return;
+    if (!selectedService || !activeServiceDetails) return;
 
     // Prüfen ob Basis-Prompt geladen ist
     if (!prompt?.prompt_text) {
@@ -187,7 +192,7 @@ const Index = () => {
       const result = await perplexityApi.analyzeWithFullContext(
         selectedService.displayName,
         selectedService.description || '',
-        details,
+        activeServiceDetails,
         prompt.prompt_text,
         selectedService.fileName // Pass fileName for GitHub link
       );
@@ -222,11 +227,10 @@ const Index = () => {
 
   // Auto-start analysis when entering Step 2 with service details loaded
   useEffect(() => {
-    const details = selectedServiceDetails || serviceDetails;
-    if (currentStep === 2 && !isAnalyzing && !analysisComplete && details && !isLoadingDetails) {
+    if (currentStep === 2 && !isAnalyzing && !analysisComplete && activeServiceDetails && !isLoadingDetails) {
       startAnalysis();
     }
-  }, [currentStep, serviceDetails, selectedServiceDetails, isLoadingDetails]);
+  }, [currentStep, activeServiceDetails, isLoadingDetails]);
 
   // Skeleton-Komponente für Ladezustand
   const ServiceCardSkeleton = () => (
@@ -511,7 +515,7 @@ const Index = () => {
             </Card>
 
             {/* Service-Kontext Card (read-only JSON preview) */}
-            {(selectedServiceDetails || serviceDetails) && (
+            {activeServiceDetails && (
               <Card className="border-border/50">
                 <Collapsible>
                   <CollapsibleTrigger asChild>
@@ -536,17 +540,20 @@ const Index = () => {
                             {
                               serviceName: selectedService?.displayName,
                               description: selectedService?.description,
-                              links: (selectedServiceDetails || serviceDetails)?.links?.filter(l => l.value?.startsWith('http')).map(l => ({
+                              githubSource: selectedService?.fileName 
+                                ? `https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${selectedService.fileName}.json`
+                                : null,
+                              links: activeServiceDetails.links?.filter(l => l.value?.startsWith('http')).map(l => ({
                                 classification: l.classification,
                                 text: l.text || l.classification,
                                 url: l.value,
                               })),
-                              servicePlans: (selectedServiceDetails || serviceDetails)?.servicePlans?.map(p => ({
+                              servicePlans: activeServiceDetails.servicePlans?.map(p => ({
                                 name: p.displayName,
                                 isFree: p.isFree,
                                 regions: p.dataCenters?.map(dc => dc.displayName || dc.region || dc.name).filter(Boolean) || [],
                               })),
-                              supportComponents: (selectedServiceDetails || serviceDetails)?.supportComponents,
+                              supportComponents: activeServiceDetails.supportComponents,
                             },
                             null,
                             2
@@ -573,12 +580,12 @@ const Index = () => {
             )}
             
             {/* Service links info */}
-            {(serviceDetails?.links || selectedServiceDetails?.links) && (
+            {activeServiceDetails?.links && (
               <div className="text-center">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 text-sm">
                   <Link2 className="w-4 h-4 text-primary" />
                   <span>
-                    {(selectedServiceDetails?.links || serviceDetails?.links || []).filter(l => l.value?.startsWith('http')).length} Dokumentationslinks als Recherchekontext
+                    {activeServiceDetails.links.filter(l => l.value?.startsWith('http')).length} Dokumentationslinks als Recherchekontext
                   </span>
                 </div>
               </div>
@@ -748,23 +755,23 @@ const Index = () => {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Service Plans</p>
-                    <p className="text-sm">{(selectedServiceDetails || serviceDetails)?.servicePlans?.length || 0} verfügbar</p>
+                    <p className="text-sm">{activeServiceDetails?.servicePlans?.length || 0} verfügbar</p>
                   </div>
                 </div>
                 
                 {/* Links Summary */}
-                {(selectedServiceDetails || serviceDetails)?.links && (
+                {activeServiceDetails?.links && (
                   <div>
                     <p className="text-xs text-muted-foreground mb-2">Dokumentationslinks</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(
-                        ((selectedServiceDetails || serviceDetails)?.links || [])
+                        (activeServiceDetails.links || [])
                           .filter(l => l.value?.startsWith('http'))
-                          .reduce((acc, l) => {
+                          .reduce((acc: Record<string, number>, l) => {
                             const c = l.classification || 'Other';
                             acc[c] = (acc[c] || 0) + 1;
                             return acc;
-                          }, {} as Record<string, number>)
+                          }, {})
                       ).map(([classification, count]) => (
                         <Badge key={classification} variant="secondary" className="text-xs">
                           {classification} ({count})
