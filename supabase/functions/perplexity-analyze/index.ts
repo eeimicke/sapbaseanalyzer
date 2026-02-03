@@ -28,6 +28,7 @@ interface AnalysisRequest {
   serviceLinks: ServiceLink[];
   servicePlans?: ServicePlanContext[];
   supportComponents?: SupportComponent[];
+  githubRepoUrl?: string;
   category: 'security' | 'integration' | 'monitoring' | 'lifecycle' | 'quick-summary' | 'full-basis';
   basePrompt?: string;
 }
@@ -96,23 +97,43 @@ function formatServiceContext(
   serviceDescription: string,
   serviceLinks: ServiceLink[],
   servicePlans?: ServicePlanContext[],
-  supportComponents?: SupportComponent[]
+  supportComponents?: SupportComponent[],
+  githubRepoUrl?: string
 ): string {
   const sections: string[] = [];
 
   sections.push(`# SAP BTP Service: ${serviceName}`);
   sections.push(`\n## Beschreibung\n${serviceDescription || 'Keine Beschreibung verfügbar.'}`);
 
-  // Format links by classification
+  // Add GitHub source reference
+  if (githubRepoUrl) {
+    sections.push(`\n## Metadaten-Quelle`);
+    sections.push(`Die Service-Metadaten stammen aus dem offiziellen SAP GitHub Repository:`);
+    sections.push(`- [Service-Metadaten JSON](${githubRepoUrl})`);
+  }
+
+  // Format links by classification (prioritized order)
   if (serviceLinks && serviceLinks.length > 0) {
     sections.push('\n## Dokumentationslinks');
+    sections.push('Nutze diese Links als primäre Recherchequellen:');
+    
     const linksByClass: Record<string, ServiceLink[]> = {};
     for (const link of serviceLinks) {
       const cls = link.classification || 'Other';
       if (!linksByClass[cls]) linksByClass[cls] = [];
       linksByClass[cls].push(link);
     }
-    for (const [cls, links] of Object.entries(linksByClass)) {
+    
+    // Priority order for classifications
+    const priorityOrder = ['Discovery Center', 'Documentation', 'SAP Help Portal', 'Tutorial', 'API Hub', 'Support'];
+    const sortedClasses = Object.keys(linksByClass).sort((a, b) => {
+      const idxA = priorityOrder.indexOf(a);
+      const idxB = priorityOrder.indexOf(b);
+      return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
+    });
+    
+    for (const cls of sortedClasses) {
+      const links = linksByClass[cls];
       sections.push(`\n### ${cls}`);
       for (const link of links) {
         sections.push(`- [${link.text}](${link.value})`);
@@ -143,7 +164,7 @@ function formatServiceContext(
     }
   }
 
-  sections.push('\n---\nBitte analysiere diesen Service aus SAP Basis-Perspektive und liefere das Ergebnis im spezifizierten JSON-Format.');
+  sections.push('\n---\nBitte analysiere diesen Service gemäß der Struktur im System-Prompt.');
 
   return sections.join('\n');
 }
@@ -160,6 +181,7 @@ Deno.serve(async (req) => {
       serviceLinks, 
       servicePlans,
       supportComponents,
+      githubRepoUrl,
       category,
       basePrompt 
     }: AnalysisRequest = await req.json();
@@ -189,13 +211,14 @@ Deno.serve(async (req) => {
       // Use the base prompt from DB (passed from frontend) as system prompt
       systemPrompt = basePrompt || 'Du bist ein erfahrener SAP Basis-Administrator. Analysiere den folgenden Service.';
       
-      // Format full service context as user message
+      // Format full service context as user message (now includes GitHub link)
       userMessage = formatServiceContext(
         serviceName,
         serviceDescription,
         serviceLinks,
         servicePlans,
-        supportComponents
+        supportComponents,
+        githubRepoUrl
       );
       maxTokens = 4000;
     } else if (category === 'quick-summary') {

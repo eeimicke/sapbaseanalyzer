@@ -188,7 +188,8 @@ const Index = () => {
         selectedService.displayName,
         selectedService.description || '',
         details,
-        prompt.prompt_text
+        prompt.prompt_text,
+        selectedService.fileName // Pass fileName for GitHub link
       );
 
       setAnalysisProgress(100);
