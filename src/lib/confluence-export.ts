@@ -101,7 +101,18 @@ export function markdownToConfluence(markdown: string, options: ExportOptions): 
     day: 'numeric'
   });
   
-  const confluenceDoc = `<ac:structured-macro ac:name="info">
+  // Confluence Storage Format with proper namespace declarations
+  const confluenceDoc = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" 
+      xmlns:ac="http://atlassian.com/content" 
+      xmlns:ri="http://atlassian.com/resource/identifier">
+<head>
+  <title>${escapeHtml(serviceName)} - SAP Basis-Analyse</title>
+</head>
+<body>
+
+<ac:structured-macro ac:name="info">
   <ac:rich-text-body>
     <p><strong>SAP BTP Service:</strong> ${escapeHtml(serviceName)}</p>
     ${serviceCategory ? `<p><strong>Kategorie:</strong> ${escapeHtml(serviceCategory)}</p>` : ''}
@@ -130,7 +141,10 @@ ${citations.map(url => `  <li><a href="${escapeHtml(url)}">${escapeHtml(url)}</a
   <ac:rich-text-body>
     <p>Diese Analyse wurde automatisch mit dem SAP Basis Analyzer erstellt.</p>
   </ac:rich-text-body>
-</ac:structured-macro>`;
+</ac:structured-macro>
+
+</body>
+</html>`;
 
   return confluenceDoc;
 }
