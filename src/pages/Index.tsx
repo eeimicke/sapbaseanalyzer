@@ -263,7 +263,7 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="text-xl font-semibold tracking-tight">SAP Basis Analyzer</h1>
-                <p className="text-xs text-muted-foreground">Powered by Perplexity AI</p>
+                <p className="text-xs text-muted-foreground">by Ernst Eimicke • Powered by Perplexity AI</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
