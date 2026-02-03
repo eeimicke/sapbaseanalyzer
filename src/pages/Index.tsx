@@ -950,6 +950,15 @@ const Index = () => {
           </div>
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/50 bg-muted/30 py-4">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Created by Ernst Eimicke
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
