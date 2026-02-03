@@ -544,7 +544,7 @@ const Index = () => {
                               servicePlans: (selectedServiceDetails || serviceDetails)?.servicePlans?.map(p => ({
                                 name: p.displayName,
                                 isFree: p.isFree,
-                                regions: p.dataCenters?.map(dc => dc.displayName) || [],
+                                regions: p.dataCenters?.map(dc => dc.displayName || dc.region || dc.name).filter(Boolean) || [],
                               })),
                               supportComponents: (selectedServiceDetails || serviceDetails)?.supportComponents,
                             },
