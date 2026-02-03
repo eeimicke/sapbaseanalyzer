@@ -47,6 +47,7 @@ import {
 } from "@/lib/sap-services";
 import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
 import { ServiceCard } from "@/components/ServiceCard";
+import { exportToConfluence, exportToMarkdown, copyToClipboard } from "@/lib/confluence-export";
 
 const steps = [
   { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
@@ -858,17 +859,71 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex gap-4">
-                  <Button variant="outline" className="flex-1 gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2"
+                    disabled={!fullBasisResult?.data?.content}
+                    onClick={() => {
+                      if (fullBasisResult?.data?.content && selectedService) {
+                        exportToConfluence(
+                          fullBasisResult.data.content,
+                          selectedService.displayName,
+                          selectedService.category,
+                          fullBasisResult.data.citations,
+                          fullBasisResult.data.model
+                        );
+                        toast({
+                          title: "Export erfolgreich",
+                          description: "Confluence XHTML-Datei wurde heruntergeladen.",
+                        });
+                      }
+                    }}
+                  >
                     <FileText className="w-4 h-4" />
                     Confluence XHTML
                   </Button>
-                  <Button variant="outline" className="flex-1 gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2"
+                    disabled={!fullBasisResult?.data?.content}
+                    onClick={() => {
+                      if (fullBasisResult?.data?.content && selectedService) {
+                        exportToMarkdown(
+                          fullBasisResult.data.content,
+                          selectedService.displayName,
+                          selectedService.category,
+                          fullBasisResult.data.citations,
+                          fullBasisResult.data.model
+                        );
+                        toast({
+                          title: "Export erfolgreich",
+                          description: "Markdown-Datei wurde heruntergeladen.",
+                        });
+                      }
+                    }}
+                  >
                     <FileText className="w-4 h-4" />
                     Markdown
                   </Button>
-                  <Button variant="outline" className="flex-1 gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 gap-2"
+                    disabled={!fullBasisResult?.data?.content}
+                    onClick={async () => {
+                      if (fullBasisResult?.data?.content) {
+                        const success = await copyToClipboard(fullBasisResult.data.content);
+                        toast({
+                          title: success ? "In Zwischenablage kopiert" : "Kopieren fehlgeschlagen",
+                          description: success 
+                            ? "Der Analyse-Text wurde in die Zwischenablage kopiert." 
+                            : "Bitte versuchen Sie es erneut.",
+                          variant: success ? "default" : "destructive",
+                        });
+                      }
+                    }}
+                  >
                     <ExternalLink className="w-4 h-4" />
-                    Teilen
+                    Kopieren
                   </Button>
                 </div>
               </CardContent>
