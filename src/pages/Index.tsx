@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,9 @@ import {
   Globe,
   Github,
   Settings,
-  Save
+  Save,
+  LogOut,
+  User
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
 import { 
@@ -69,6 +72,7 @@ const classificationIcons: Record<string, typeof FileCode> = {
 };
 
 const Index = () => {
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
@@ -279,6 +283,23 @@ const Index = () => {
               >
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
+              {user && (
+                <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <User className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline max-w-32 truncate">{user.email}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => signOut()}
+                    className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-1">Abmelden</span>
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
