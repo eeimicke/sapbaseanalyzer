@@ -31,21 +31,14 @@ export function markdownToConfluence(markdown: string, options: ExportOptions): 
   
   let xhtml = markdown;
   
-  // First, escape HTML in inline code blocks to prevent XML parsing errors
-  // Match `code` and escape the content inside, then wrap with <code>
-  xhtml = xhtml.replace(/`([^`]+)`/g, (_, code) => `<code>${escapeHtml(code)}</code>`);
+  // STEP 1: First escape ALL angle brackets in the raw markdown
+  // This prevents any unescaped < or > from breaking XML parsing
+  xhtml = xhtml.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   
-  // Escape any remaining angle brackets that look like placeholders (e.g., <region>, <your-value>)
-  // These are common in documentation and should not be parsed as XML tags
-  xhtml = xhtml.replace(/<([a-zA-Z][a-zA-Z0-9_-]*)>/g, (match, tagName) => {
-    // Check if it's a valid HTML/XML tag we want to keep
-    const validTags = ['strong', 'em', 'code', 'a', 'p', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'br'];
-    if (validTags.includes(tagName.toLowerCase())) {
-      return match;
-    }
-    // Escape it as text
-    return `&lt;${tagName}&gt;`;
-  });
+  // STEP 2: Now process markdown syntax (working with escaped content)
+  
+  // Convert inline code blocks `code` - the content is already escaped
+  xhtml = xhtml.replace(/`([^`]+)`/g, '<code>$1</code>');
   
   // Convert headers (### -> h3, ## -> h2, # -> h1)
   xhtml = xhtml.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
@@ -57,12 +50,16 @@ export function markdownToConfluence(markdown: string, options: ExportOptions): 
   xhtml = xhtml.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   xhtml = xhtml.replace(/__(.+?)__/g, '<strong>$1</strong>');
   
-  // Convert italic (*text* or _text_)
-  xhtml = xhtml.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  xhtml = xhtml.replace(/_([^_]+)_/g, '<em>$1</em>');
+  // Convert italic (*text* or _text_) - be careful not to match list items
+  xhtml = xhtml.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+  xhtml = xhtml.replace(/(?<!_)_([^_\n]+)_(?!_)/g, '<em>$1</em>');
   
-  // Convert links [text](url)
-  xhtml = xhtml.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+  // Convert links [text](url) - URL was escaped, so we need to unescape &gt; back
+  xhtml = xhtml.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+    // Unescape the URL
+    const cleanUrl = url.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    return `<a href="${escapeHtml(cleanUrl)}">${text}</a>`;
+  });
   
   // Convert unordered lists (- item or * item)
   const listBlocks = xhtml.split(/\n\n+/);
