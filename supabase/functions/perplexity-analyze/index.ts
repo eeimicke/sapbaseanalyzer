@@ -325,14 +325,16 @@ Deno.serve(async (req) => {
 
     if (category === 'full-basis') {
       // Use the base prompt from DB (passed from frontend) as system prompt
-      // Add language instruction to ensure response is in the correct language
+      // Add strong language instruction at the BEGINNING to ensure correct language output
       const languageInstruction = language === 'en' 
-        ? '\n\nIMPORTANT: Respond entirely in English.'
-        : '\n\nWICHTIG: Antworte komplett auf Deutsch.';
+        ? '[LANGUAGE REQUIREMENT: You MUST respond ENTIRELY in English. All headings, descriptions, and content must be in English.]\n\n'
+        : '[SPRACHANFORDERUNG: Du MUSST vollständig auf Deutsch antworten. Alle Überschriften, Beschreibungen und Inhalte müssen auf Deutsch sein.]\n\n';
       
-      systemPrompt = (basePrompt || (language === 'en' 
+      const defaultPrompt = language === 'en' 
         ? 'You are an experienced SAP Basis Administrator. Analyze the following service.'
-        : 'Du bist ein erfahrener SAP Basis-Administrator. Analysiere den folgenden Service.')) + languageInstruction;
+        : 'Du bist ein erfahrener SAP Basis-Administrator. Analysiere den folgenden Service.';
+      
+      systemPrompt = languageInstruction + (basePrompt || defaultPrompt);
       
       // Format full service context as user message
       userMessage = formatServiceContext(
