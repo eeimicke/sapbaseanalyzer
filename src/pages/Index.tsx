@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
+import { useLanguage } from "@/hooks/useLanguage";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +46,7 @@ import {
   Linkedin
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
-import { useBatchRelevance, type RelevanceLevel, relevanceColors, relevanceLabels } from "@/hooks/use-service-relevance";
+import { useBatchRelevance, type RelevanceLevel, relevanceColors } from "@/hooks/use-service-relevance";
 import { 
   filterServices, 
   extractCategories, 
@@ -55,13 +57,6 @@ import {
 import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
 import { ServiceCard } from "@/components/ServiceCard";
 import { exportToConfluence, exportToMarkdown, copyToClipboard } from "@/lib/confluence-export";
-
-const steps = [
-  { id: 1, title: "Service auswählen", icon: Database, description: "SAP BTP Service wählen" },
-  { id: 2, title: "Basis-Analyse", icon: Bot, description: "KI-Analyse" },
-  { id: 3, title: "Summary", icon: FileText, description: "Wiki-Export" },
-];
-
 
 // Icon-Mapping für Link-Classifications
 const classificationIcons: Record<string, typeof FileCode> = {
@@ -79,6 +74,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<ServiceDetails | null>(null);
@@ -86,6 +82,13 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRelevance, setSelectedRelevance] = useState<RelevanceLevel | "all">("all");
   const { isDark, toggleTheme } = useTheme();
+
+  // Steps with translations
+  const steps = [
+    { id: 1, titleKey: "app.step1.title", icon: Database, descriptionKey: "app.step1.description" },
+    { id: 2, titleKey: "app.step2.title", icon: Bot, descriptionKey: "app.step2.description" },
+    { id: 3, titleKey: "app.step3.title", icon: FileText, descriptionKey: "app.step3.description" },
+  ];
 
   // Prompt State
   const { prompt, isLoading: isLoadingPrompt, isSaving: isSavingPrompt, savePrompt } = useAnalysisPrompt();
@@ -130,7 +133,6 @@ const Index = () => {
   } = useServiceDetails(selectedService?.fileName ?? null);
 
   // Konsolidierte Service-Details: Bevorzuge die explizit gesetzten, fallback auf gefetched
-  // Dies stellt sicher, dass überall dieselben Daten verwendet werden
   const activeServiceDetails = useMemo(() => {
     return selectedServiceDetails || fetchedServiceDetails || null;
   }, [selectedServiceDetails, fetchedServiceDetails]);
@@ -199,19 +201,17 @@ const Index = () => {
     return counts;
   }, [services]);
 
-
   // Full-Basis Analyse State
   const [fullBasisResult, setFullBasisResult] = useState<AnalysisResponse | null>(null);
 
-  // Start Full-Basis Analysis (einheitlich mit DB-Prompt + vollständigen Service-Metadaten)
+  // Start Full-Basis Analysis
   const startAnalysis = async () => {
     if (!selectedService || !activeServiceDetails) return;
 
-    // Prüfen ob Basis-Prompt geladen ist
     if (!prompt?.prompt_text) {
       toast({
-        title: "Basis-Prompt fehlt",
-        description: "Der Analyse-Prompt konnte nicht aus der Datenbank geladen werden.",
+        title: t("app.promptMissing"),
+        description: t("app.promptMissingDesc"),
         variant: "destructive",
       });
       return;
@@ -226,13 +226,12 @@ const Index = () => {
     try {
       setAnalysisProgress(25);
       
-      // Eine einzige Full-Basis Analyse mit DB-Prompt + vollständigen Service-Metadaten
       const result = await perplexityApi.analyzeWithFullContext(
         selectedService.displayName,
         selectedService.description || '',
         activeServiceDetails,
         prompt.prompt_text,
-        selectedService.fileName // Pass fileName for GitHub link
+        selectedService.fileName
       );
 
       setAnalysisProgress(100);
@@ -242,20 +241,20 @@ const Index = () => {
       
       if (result.success) {
         toast({
-          title: "Analyse abgeschlossen",
-          description: "Die vollständige Basis-Analyse wurde erfolgreich durchgeführt.",
+          title: t("app.analysisComplete"),
+          description: t("app.analysisCompleteDesc"),
         });
       } else {
         toast({
-          title: "Analyse Fehler",
-          description: result.error || "Unbekannter Fehler",
+          title: t("app.analysisError"),
+          description: result.error || t("app.unknownError"),
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Analyse Fehler",
-        description: error instanceof Error ? error.message : "Unbekannter Fehler",
+        title: t("app.analysisError"),
+        description: error instanceof Error ? error.message : t("app.unknownError"),
         variant: "destructive",
       });
     } finally {
@@ -299,15 +298,16 @@ const Index = () => {
                 <Sparkles className="w-5 h-5 text-background" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold tracking-tight">SAP Basis Analyzer</h1>
-                <p className="text-xs text-muted-foreground">by Ernst Eimicke • Powered by Perplexity AI</p>
+                <h1 className="text-xl font-semibold tracking-tight">{t("header.title")}</h1>
+                <p className="text-xs text-muted-foreground">{t("header.subtitle")} • Powered by Perplexity AI</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Badge variant="outline" className="text-xs px-3 py-1 border-primary/30 text-primary">
                 <Github className="w-3 h-3 mr-1" />
-                Live API
+                {t("header.liveApi")}
               </Badge>
+              <LanguageToggle />
               <Button
                 variant="ghost"
                 size="icon"
@@ -332,7 +332,7 @@ const Index = () => {
                     className="h-8 px-2 text-muted-foreground hover:text-foreground"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline ml-1">Abmelden</span>
+                    <span className="hidden sm:inline ml-1">{t("header.logout")}</span>
                   </Button>
                 </div>
               )}
@@ -362,7 +362,7 @@ const Index = () => {
                   } ${(step.id === 1 || (step.id === 2 && selectedService) || (step.id > 2 && analysisComplete)) ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
                 >
                   <step.icon className="w-4 h-4" />
-                  <span className="hidden md:inline text-sm font-medium">{step.title}</span>
+                  <span className="hidden md:inline text-sm font-medium">{t(step.titleKey)}</span>
                   <span className="md:hidden text-xs">{step.id}</span>
                 </button>
                 {index < steps.length - 1 && (
@@ -380,8 +380,8 @@ const Index = () => {
         {currentStep === 1 && (
           <div className="space-y-8">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-semibold mb-2">SAP BTP Service auswählen</h2>
-              <p className="text-muted-foreground mb-2">Wählen Sie einen Service für die Basis-Analyse</p>
+              <h2 className="text-3xl font-semibold mb-2">{t("app.selectServiceTitle")}</h2>
+              <p className="text-muted-foreground mb-2">{t("app.selectServiceDescription")}</p>
               <a
                 href="https://github.com/SAP-samples/btp-service-metadata/tree/main/v1"
                 target="_blank"
@@ -391,10 +391,10 @@ const Index = () => {
                 <Database className="w-4 h-4" />
                 <span>
                   {isLoadingServices 
-                    ? "Lade Services..." 
+                    ? t("app.loadingServices")
                     : isServicesError 
-                    ? "Fehler beim Laden" 
-                    : `${services?.length || 0} Services vom SAP GitHub Repository`
+                    ? t("app.loadError")
+                    : `${services?.length || 0} ${t("app.servicesFromGithub")}`
                   }
                 </span>
                 <ExternalLink className="w-3 h-3" />
@@ -406,7 +406,7 @@ const Index = () => {
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Services durchsuchen..."
+                  placeholder={t("app.searchPlaceholder")}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-11 h-12 bg-muted/50 border-border/50"
@@ -421,7 +421,7 @@ const Index = () => {
                       value="all" 
                       className="text-xs px-4 py-2 rounded-lg transition-all data-[state=active]:nagarro-gradient data-[state=active]:text-white data-[state=active]:font-semibold data-[state=active]:shadow-lg data-[state=active]:nagarro-glow data-[state=inactive]:text-muted-foreground data-[state=inactive]:hover:text-foreground data-[state=inactive]:hover:bg-muted/50"
                     >
-                      Alle ({categoryCounts.all || 0})
+                      {t("app.all")} ({categoryCounts.all || 0})
                     </TabsTrigger>
                     {availableCategories.slice(0, 6).map((cat) => (
                       <TabsTrigger 
@@ -439,7 +439,7 @@ const Index = () => {
               {/* Relevanz-Filter */}
               {!isLoadingServices && !isServicesError && (
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground font-medium">Basis-Relevanz:</span>
+                  <span className="text-xs text-muted-foreground font-medium">{t("app.basisRelevance")}</span>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => setSelectedRelevance("all")}
@@ -449,7 +449,7 @@ const Index = () => {
                           : "bg-muted/50 text-muted-foreground hover:bg-muted"
                       }`}
                     >
-                      Alle ({relevanceCounts.all})
+                      {t("app.all")} ({relevanceCounts.all})
                     </button>
                     <button
                       onClick={() => setSelectedRelevance("hoch")}
@@ -460,7 +460,7 @@ const Index = () => {
                       }`}
                     >
                       <span className={`w-2 h-2 rounded-full ${relevanceColors.hoch.dot}`} />
-                      Hoch ({relevanceCounts.hoch})
+                      {t("app.high")} ({relevanceCounts.hoch})
                     </button>
                     <button
                       onClick={() => setSelectedRelevance("mittel")}
@@ -471,7 +471,7 @@ const Index = () => {
                       }`}
                     >
                       <span className={`w-2 h-2 rounded-full ${relevanceColors.mittel.dot}`} />
-                      Mittel ({relevanceCounts.mittel})
+                      {t("app.medium")} ({relevanceCounts.mittel})
                     </button>
                     <button
                       onClick={() => setSelectedRelevance("niedrig")}
@@ -482,7 +482,7 @@ const Index = () => {
                       }`}
                     >
                       <span className={`w-2 h-2 rounded-full ${relevanceColors.niedrig.dot}`} />
-                      Niedrig ({relevanceCounts.niedrig})
+                      {t("app.low")} ({relevanceCounts.niedrig})
                     </button>
                   </div>
                   {isLoadingRelevance && (
@@ -499,12 +499,12 @@ const Index = () => {
                   <CardContent className="flex items-center gap-4 p-6">
                     <AlertCircle className="w-10 h-10 text-destructive flex-shrink-0" />
                     <div className="flex-1">
-                      <h3 className="font-medium text-destructive mb-1">Fehler beim Laden der Services</h3>
-                      <p className="text-sm text-muted-foreground">{servicesError?.message || "Unbekannter Fehler"}</p>
+                      <h3 className="font-medium text-destructive mb-1">{t("app.errorLoadingServices")}</h3>
+                      <p className="text-sm text-muted-foreground">{servicesError?.message || t("app.unknownError")}</p>
                     </div>
                     <Button onClick={() => refetchServices()} variant="outline" size="sm">
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Erneut versuchen
+                      {t("app.retry")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -537,9 +537,9 @@ const Index = () => {
               {!isLoadingServices && filteredServices.length === 0 && !isServicesError && (
                 <div className="col-span-full text-center py-12">
                   <Search className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Keine Services gefunden</h3>
+                  <h3 className="text-lg font-medium mb-2">{t("app.noServicesFound")}</h3>
                   <p className="text-muted-foreground text-sm">
-                    Versuchen Sie einen anderen Suchbegriff oder wählen Sie eine andere Kategorie.
+                    {t("app.tryDifferentSearch")}
                   </p>
                 </div>
               )}
@@ -552,9 +552,9 @@ const Index = () => {
         {currentStep === 2 && (
           <div className="space-y-6 max-w-5xl mx-auto">
             <div className="text-center mb-4">
-              <h2 className="text-3xl font-semibold mb-2">SAP Basis-Analyse</h2>
+              <h2 className="text-3xl font-semibold mb-2">{t("app.basisAnalysis")}</h2>
               <p className="text-muted-foreground">
-                Perplexity AI recherchiert im Web für {selectedService?.displayName || "den Service"}
+                {t("app.perplexityResearching")} {selectedService?.displayName || "the service"}
               </p>
             </div>
 
@@ -566,19 +566,19 @@ const Index = () => {
                     <CardTitle className="flex items-center justify-between text-base">
                       <div className="flex items-center gap-2">
                         <Settings className="w-4 h-4 text-primary" />
-                        Analyse-Prompt
+                        {t("app.analysisPrompt")}
                       </div>
                       <div className="flex items-center gap-2">
                         {prompt && (
                           <Badge variant="outline" className="text-xs">
-                            Zuletzt aktualisiert: {new Date(prompt.updated_at).toLocaleDateString("de-DE")}
+                            {t("app.lastUpdated")}: {new Date(prompt.updated_at).toLocaleDateString()}
                           </Badge>
                         )}
                         <ChevronDown className={`w-4 h-4 transition-transform ${isPromptOpen ? 'rotate-180' : ''}`} />
                       </div>
                     </CardTitle>
                     <CardDescription>
-                      Dieser Prompt wird für die KI-Analyse verwendet. Klicken zum Bearbeiten.
+                      {t("app.promptDescription")}
                     </CardDescription>
                   </CardHeader>
                 </CollapsibleTrigger>
@@ -596,11 +596,11 @@ const Index = () => {
                           value={editedPrompt}
                           onChange={(e) => setEditedPrompt(e.target.value)}
                           className="min-h-[300px] font-mono text-xs bg-muted/30"
-                          placeholder="Analyse-Prompt eingeben..."
+                          placeholder="Enter analysis prompt..."
                         />
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">
-                            {editedPrompt.length} Zeichen
+                            {editedPrompt.length} {t("app.characters")}
                           </p>
                           <div className="flex gap-2">
                             <Button
@@ -609,7 +609,7 @@ const Index = () => {
                               onClick={() => setEditedPrompt(prompt?.prompt_text || "")}
                               disabled={editedPrompt === prompt?.prompt_text}
                             >
-                              Zurücksetzen
+                              {t("app.reset")}
                             </Button>
                             <Button
                               size="sm"
@@ -622,7 +622,7 @@ const Index = () => {
                               ) : (
                                 <Save className="w-3 h-3" />
                               )}
-                              Speichern
+                              {t("app.save")}
                             </Button>
                           </div>
                         </div>
@@ -633,7 +633,7 @@ const Index = () => {
               </Collapsible>
             </Card>
 
-            {/* Service-Kontext Card (read-only JSON preview) */}
+            {/* Service-Kontext Card */}
             {activeServiceDetails && (
               <Card className="border-border/50">
                 <Collapsible>
@@ -642,12 +642,12 @@ const Index = () => {
                       <CardTitle className="flex items-center justify-between text-base">
                         <div className="flex items-center gap-2">
                           <Database className="w-4 h-4 text-primary" />
-                          Service-Kontext (aus Metadaten)
+                          {t("app.serviceContext")}
                         </div>
                         <ChevronDown className="w-4 h-4" />
                       </CardTitle>
                       <CardDescription>
-                        Diese Informationen werden automatisch an die KI übergeben.
+                        {t("app.contextDescription")}
                       </CardDescription>
                     </CardHeader>
                   </CollapsibleTrigger>
@@ -691,8 +691,8 @@ const Index = () => {
                 <Progress value={analysisProgress} className="h-2" />
                 <p className="text-xs text-muted-foreground mt-2">
                   {currentAnalysisCategory === 'full-basis'
-                    ? 'Perplexity AI führt vollständige Basis-Analyse durch...'
-                    : `${analysisProgress}% abgeschlossen`
+                    ? t("app.fullBasisAnalysisRunning")
+                    : `${analysisProgress}% ${t("app.completed")}`
                   }
                 </p>
               </div>
@@ -704,7 +704,7 @@ const Index = () => {
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 text-sm">
                   <Link2 className="w-4 h-4 text-primary" />
                   <span>
-                    {activeServiceDetails.links.filter(l => l.value?.startsWith('http')).length} Dokumentationslinks als Recherchekontext
+                    {activeServiceDetails.links.filter(l => l.value?.startsWith('http')).length} {t("app.documentationLinks")}
                   </span>
                 </div>
               </div>
@@ -717,12 +717,12 @@ const Index = () => {
                   <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center nagarro-glow">
                     <Bot className="w-5 h-5 text-background" />
                   </div>
-                  <span className="flex-1">Vollständige Basis-Analyse</span>
+                  <span className="flex-1">{t("app.fullBasisAnalysis")}</span>
                   {fullBasisResult?.success && <Check className="w-5 h-5 text-primary" />}
                   {fullBasisResult && !fullBasisResult.success && <AlertCircle className="w-5 h-5 text-destructive" />}
                 </CardTitle>
                 <CardDescription>
-                  KI-gestützte Analyse basierend auf dem Basis-Prompt und allen Service-Metadaten
+                  {t("app.aiAnalysisDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -731,7 +731,7 @@ const Index = () => {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 text-sm">
                       <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                      <span className="text-muted-foreground">Perplexity AI recherchiert im Web...</span>
+                      <span className="text-muted-foreground">{t("app.perplexitySearching")}</span>
                     </div>
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-full animate-pulse" />
@@ -747,7 +747,7 @@ const Index = () => {
                 {fullBasisResult && !fullBasisResult.success && (
                   <div className="p-3 rounded-md bg-destructive/10 border border-destructive/20">
                     <p className="text-sm text-destructive">
-                      Fehler: {fullBasisResult.error || 'Unbekannter Fehler'}
+                      {t("app.error")}: {fullBasisResult.error || t("app.unknownError")}
                     </p>
                   </div>
                 )}
@@ -767,7 +767,7 @@ const Index = () => {
                     {fullBasisResult.data.citations && fullBasisResult.data.citations.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs text-muted-foreground font-medium">
-                          Quellen ({fullBasisResult.data.citations.length}):
+                          {t("app.sources")} ({fullBasisResult.data.citations.length}):
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {fullBasisResult.data.citations.slice(0, 5).map((citation, idx) => (
@@ -783,7 +783,7 @@ const Index = () => {
                           ))}
                           {fullBasisResult.data.citations.length > 5 && (
                             <Badge variant="outline" className="text-xs">
-                              +{fullBasisResult.data.citations.length - 5} mehr
+                              +{fullBasisResult.data.citations.length - 5} {t("app.more")}
                             </Badge>
                           )}
                         </div>
@@ -793,7 +793,7 @@ const Index = () => {
                     {/* Model info */}
                     {fullBasisResult.data.model && (
                       <p className="text-xs text-muted-foreground">
-                        Modell: {fullBasisResult.data.model}
+                        {t("app.model")}: {fullBasisResult.data.model}
                       </p>
                     )}
                   </div>
@@ -802,7 +802,7 @@ const Index = () => {
                 {/* Initial waiting state */}
                 {!fullBasisResult && !isAnalyzing && (
                   <div className="text-center py-4 text-muted-foreground text-sm">
-                    Analyse wird gestartet...
+                    {t("app.analysisStarting")}
                   </div>
                 )}
               </CardContent>
@@ -820,14 +820,14 @@ const Index = () => {
                 className="gap-2"
                 disabled={isAnalyzing}
               >
-                Zurück
+                {t("app.back")}
               </Button>
               <Button
                 onClick={() => setCurrentStep(3)}
                 disabled={!analysisComplete}
                 className="gap-2 nagarro-gradient text-background nagarro-glow"
               >
-                {analysisComplete ? "Zur Summary" : "Analyse läuft..."}
+                {analysisComplete ? t("app.toSummary") : t("app.analysisRunning")}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -838,9 +838,9 @@ const Index = () => {
         {currentStep === 3 && (
           <div className="space-y-8 max-w-4xl mx-auto">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-semibold mb-2">Summary</h2>
+              <h2 className="text-3xl font-semibold mb-2">{t("app.summary")}</h2>
               <p className="text-muted-foreground">
-                Zusammenfassung für Wiki-Export
+                {t("app.summaryForExport")}
               </p>
             </div>
 
@@ -851,37 +851,37 @@ const Index = () => {
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Database className="w-5 h-5 text-primary" />
                   </div>
-                  Service-Überblick
+                  {t("app.serviceOverview")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Service Name</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("app.serviceName")}</p>
                     <p className="font-medium">{selectedService?.displayName || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Technische ID</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("app.technicalId")}</p>
                     <code className="text-sm bg-muted px-2 py-1 rounded">{selectedService?.technicalId || "—"}</code>
                   </div>
                   <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground mb-1">Beschreibung</p>
-                    <p className="text-sm text-muted-foreground">{selectedService?.description || "Keine Beschreibung verfügbar"}</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("app.description")}</p>
+                    <p className="text-sm text-muted-foreground">{selectedService?.description || t("app.noDescription")}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Kategorie</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("app.category")}</p>
                     <Badge variant="outline">{selectedService?.category || "Service"}</Badge>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Service Plans</p>
-                    <p className="text-sm">{activeServiceDetails?.servicePlans?.length || 0} verfügbar</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t("app.servicePlans")}</p>
+                    <p className="text-sm">{activeServiceDetails?.servicePlans?.length || 0} {t("app.available")}</p>
                   </div>
                 </div>
                 
                 {/* Links Summary */}
                 {activeServiceDetails?.links && (
                   <div>
-                    <p className="text-xs text-muted-foreground mb-2">Dokumentationslinks</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t("app.documentationLinksLabel")}</p>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(
                         (activeServiceDetails.links || [])
@@ -910,10 +910,10 @@ const Index = () => {
                     <div className="w-10 h-10 rounded-lg nagarro-gradient flex items-center justify-center nagarro-glow">
                       <Bot className="w-5 h-5 text-background" />
                     </div>
-                    Basis-Analyse Findings
+                    {t("app.basisAnalysisFindings")}
                   </CardTitle>
                   <CardDescription>
-                    KI-gestützte Analyse vom {new Date().toLocaleDateString("de-DE")}
+                    {t("app.aiAnalysisFrom")} {new Date().toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -929,7 +929,7 @@ const Index = () => {
                   {fullBasisResult.data.citations && fullBasisResult.data.citations.length > 0 && (
                     <div className="space-y-2">
                       <p className="text-xs text-muted-foreground font-medium">
-                        Verwendete Quellen ({fullBasisResult.data.citations.length}):
+                        {t("app.sourcesUsed")} ({fullBasisResult.data.citations.length}):
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {fullBasisResult.data.citations.map((citation, idx) => (
@@ -955,7 +955,7 @@ const Index = () => {
                   
                   {fullBasisResult.data.model && (
                     <p className="text-xs text-muted-foreground">
-                      Analysiert mit: {fullBasisResult.data.model}
+                      {t("app.analyzedWith")}: {fullBasisResult.data.model}
                     </p>
                   )}
                 </CardContent>
@@ -969,10 +969,10 @@ const Index = () => {
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <FileText className="w-5 h-5 text-primary" />
                   </div>
-                  Wiki-Export
+                  {t("app.wikiExport")}
                 </CardTitle>
                 <CardDescription>
-                  Exportiere die Zusammenfassung für Confluence oder andere Wikis
+                  {t("app.exportDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -991,14 +991,14 @@ const Index = () => {
                           fullBasisResult.data.model
                         );
                         toast({
-                          title: "Export erfolgreich",
-                          description: "Confluence XHTML-Datei wurde heruntergeladen.",
+                          title: t("app.exportSuccess"),
+                          description: t("app.confluenceDownloaded"),
                         });
                       }
                     }}
                   >
                     <FileText className="w-4 h-4" />
-                    Confluence XHTML
+                    {t("app.confluenceXhtml")}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -1014,14 +1014,14 @@ const Index = () => {
                           fullBasisResult.data.model
                         );
                         toast({
-                          title: "Export erfolgreich",
-                          description: "Markdown-Datei wurde heruntergeladen.",
+                          title: t("app.exportSuccess"),
+                          description: t("app.markdownDownloaded"),
                         });
                       }
                     }}
                   >
                     <FileText className="w-4 h-4" />
-                    Markdown
+                    {t("app.markdown")}
                   </Button>
                   <Button 
                     variant="outline" 
@@ -1031,17 +1031,17 @@ const Index = () => {
                       if (fullBasisResult?.data?.content) {
                         const success = await copyToClipboard(fullBasisResult.data.content);
                         toast({
-                          title: success ? "In Zwischenablage kopiert" : "Kopieren fehlgeschlagen",
+                          title: success ? t("app.copiedToClipboard") : t("app.copyFailed"),
                           description: success 
-                            ? "Der Analyse-Text wurde in die Zwischenablage kopiert." 
-                            : "Bitte versuchen Sie es erneut.",
+                            ? t("app.analysisTextCopied")
+                            : t("app.tryAgain"),
                           variant: success ? "default" : "destructive",
                         });
                       }
                     }}
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Kopieren
+                    {t("app.copy")}
                   </Button>
                 </div>
               </CardContent>
@@ -1049,7 +1049,7 @@ const Index = () => {
 
             <div className="flex justify-between pt-4">
               <Button variant="outline" onClick={() => setCurrentStep(2)} className="gap-2">
-                Zurück
+                {t("app.back")}
               </Button>
               <Button
                 onClick={() => {
@@ -1062,7 +1062,7 @@ const Index = () => {
                 }}
                 className="gap-2 nagarro-gradient text-background nagarro-glow"
               >
-                Neue Analyse starten
+                {t("app.startNewAnalysis")}
               </Button>
             </div>
           </div>
@@ -1073,7 +1073,7 @@ const Index = () => {
       <footer className="border-t border-border/50 bg-muted/30 py-4">
         <div className="container mx-auto px-6 text-center">
           <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-            Created by Ernst Eimicke
+            {t("footer.createdBy")}
             <span className="text-border">•</span>
             <a
               href="https://www.linkedin.com/in/eeimicke"
