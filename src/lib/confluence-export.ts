@@ -31,6 +31,22 @@ export function markdownToConfluence(markdown: string, options: ExportOptions): 
   
   let xhtml = markdown;
   
+  // First, escape HTML in inline code blocks to prevent XML parsing errors
+  // Match `code` and escape the content inside, then wrap with <code>
+  xhtml = xhtml.replace(/`([^`]+)`/g, (_, code) => `<code>${escapeHtml(code)}</code>`);
+  
+  // Escape any remaining angle brackets that look like placeholders (e.g., <region>, <your-value>)
+  // These are common in documentation and should not be parsed as XML tags
+  xhtml = xhtml.replace(/<([a-zA-Z][a-zA-Z0-9_-]*)>/g, (match, tagName) => {
+    // Check if it's a valid HTML/XML tag we want to keep
+    const validTags = ['strong', 'em', 'code', 'a', 'p', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'br'];
+    if (validTags.includes(tagName.toLowerCase())) {
+      return match;
+    }
+    // Escape it as text
+    return `&lt;${tagName}&gt;`;
+  });
+  
   // Convert headers (### -> h3, ## -> h2, # -> h1)
   xhtml = xhtml.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
   xhtml = xhtml.replace(/^### (.+)$/gm, '<h3>$1</h3>');
@@ -44,9 +60,6 @@ export function markdownToConfluence(markdown: string, options: ExportOptions): 
   // Convert italic (*text* or _text_)
   xhtml = xhtml.replace(/\*([^*]+)\*/g, '<em>$1</em>');
   xhtml = xhtml.replace(/_([^_]+)_/g, '<em>$1</em>');
-  
-  // Convert inline code (`code`)
-  xhtml = xhtml.replace(/`([^`]+)`/g, '<code>$1</code>');
   
   // Convert links [text](url)
   xhtml = xhtml.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
