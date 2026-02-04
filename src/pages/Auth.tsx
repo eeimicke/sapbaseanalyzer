@@ -30,7 +30,7 @@ const Auth = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/app');
     }
   }, [user, navigate]);
 
@@ -49,7 +49,7 @@ const Auth = () => {
         title: 'Erfolgreich angemeldet',
         description: 'Willkommen zurück!',
       });
-      navigate('/');
+      navigate('/app');
     }
   };
 
