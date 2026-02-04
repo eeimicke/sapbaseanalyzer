@@ -85,6 +85,14 @@ const Landing = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <a
+                href="https://www.linkedin.com/in/eeimicke"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                <Linkedin className="w-5 h-5" />
+              </a>
               <Badge variant="outline" className="text-xs px-3 py-1 border-primary/30 text-primary hidden sm:flex">
                 <Github className="w-3 h-3 mr-1" />
                 Open Source Data
