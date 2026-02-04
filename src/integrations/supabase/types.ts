@@ -41,6 +41,30 @@ export type Database = {
         }
         Relationships: []
       }
+      service_relevance_cache: {
+        Row: {
+          created_at: string | null
+          id: string
+          reason: string
+          relevance: string
+          service_technical_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          reason: string
+          relevance: string
+          service_technical_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          reason?: string
+          relevance?: string
+          service_technical_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
