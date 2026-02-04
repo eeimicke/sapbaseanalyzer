@@ -130,6 +130,13 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Link 
+        to="/" 
+        className="absolute top-4 left-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        {t("auth.backToLanding")}
+      </Link>
       <div className="absolute top-4 right-4">
         <LanguageToggle />
       </div>
