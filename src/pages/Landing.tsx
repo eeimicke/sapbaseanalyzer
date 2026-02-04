@@ -285,7 +285,25 @@ const Landing = () => {
             )}
           </div>
 
-          <div className="text-center mt-8">
+          {/* Login-Hinweis */}
+          <div className="mt-8 p-4 rounded-lg bg-primary/5 border border-primary/20 max-w-2xl mx-auto">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Shield className="w-4 h-4 text-primary" />
+              </div>
+              <p className="text-muted-foreground">
+                <span className="font-medium text-foreground">Anmeldung erforderlich:</span>{" "}
+                Für die vollständige KI-Analyse, Perplexity-Integration und den Export nach Confluence ist eine kostenlose Registrierung notwendig.
+              </p>
+              <Link to="/auth" className="flex-shrink-0">
+                <Button size="sm" className="nagarro-gradient text-background nagarro-glow h-8">
+                  Anmelden
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="text-center mt-6">
             <Link to="/auth">
               <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
                 Alle Basis-relevanten Services ansehen
