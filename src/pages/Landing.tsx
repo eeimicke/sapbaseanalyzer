@@ -2,7 +2,10 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/hooks/useTheme";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sparkles,
   Database,
@@ -18,6 +21,7 @@ import {
   Globe,
   Moon,
   Sun,
+  CircleCheck,
 } from "lucide-react";
 
 const features = [
@@ -73,6 +77,22 @@ const steps = [
 
 const Landing = () => {
   const { isDark, toggleTheme } = useTheme();
+
+  // Lade 10 Services mit hoher Basis-Relevanz aus dem Cache
+  const { data: highRelevanceServices, isLoading: isLoadingServices } = useQuery({
+    queryKey: ["landing-high-relevance"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_relevance_cache")
+        .select("service_technical_id, reason")
+        .eq("relevance", "hoch")
+        .limit(10);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 5, // 5 Minuten
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -181,6 +201,71 @@ const Landing = () => {
                 <p className="text-sm text-muted-foreground">Cloud-Native</p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* High Relevance Services Preview */}
+      <section className="py-16 border-b border-border/30">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-10">
+            <Badge className="mb-4 bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+              <CircleCheck className="w-3 h-3 mr-1.5" />
+              Hohe Basis-Relevanz
+            </Badge>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              Services für SAP Basis-Administratoren
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+              Diese Services wurden von unserer KI als besonders relevant für SAP Basis-Aufgaben klassifiziert.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
+            {isLoadingServices ? (
+              Array.from({ length: 10 }).map((_, i) => (
+                <Card key={i} className="border-green-500/20 bg-green-500/5">
+                  <CardContent className="p-4">
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-full" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : highRelevanceServices && highRelevanceServices.length > 0 ? (
+              highRelevanceServices.map((service) => (
+                <Card 
+                  key={service.service_technical_id} 
+                  className="border-green-500/20 bg-green-500/5 hover:bg-green-500/10 transition-colors"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate" title={service.service_technical_id}>
+                          {service.service_technical_id}
+                        </p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {service.reason}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center text-muted-foreground py-8">
+                <p className="text-sm">Starte die App um Services zu klassifizieren</p>
+              </div>
+            )}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link to="/auth">
+              <Button variant="outline" className="border-green-500/30 text-green-600 dark:text-green-400 hover:bg-green-500/10">
+                Alle {highRelevanceServices?.length ? `${highRelevanceServices.length}+` : ''} Basis-relevanten Services ansehen
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
