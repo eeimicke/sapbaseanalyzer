@@ -151,9 +151,9 @@ const Index = () => {
     return filterServices(services, searchQuery, selectedCategory);
   }, [services, searchQuery, selectedCategory]);
 
-  // Batch-Relevanz für sichtbare Services laden
+  // Batch-Relevanz für alle Services laden (Ergebnisse werden in DB gecacht)
   const { data: relevanceMap, isLoading: isLoadingRelevance } = useBatchRelevance(
-    categoryFilteredServices.slice(0, 50), // Limit to first 50 for performance
+    categoryFilteredServices,
     categoryFilteredServices.length > 0
   );
 
