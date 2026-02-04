@@ -186,10 +186,6 @@ const Landing = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" />
         <div className="container mx-auto px-6 py-20 md:py-32 relative">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <Badge className="nagarro-gradient text-background px-4 py-1.5 text-sm">
-              <Sparkles className="w-3.5 h-3.5 mr-2" />
-              {t("hero.badge")}
-            </Badge>
             
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
               {t("hero.title1")}
