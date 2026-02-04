@@ -221,13 +221,21 @@ const Landing = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-7xl mx-auto">
             {isLoadingServices ? (
               Array.from({ length: 10 }).map((_, i) => (
-                <Card key={i} className="border-green-500/20 bg-green-500/5">
-                  <CardContent className="p-4">
+                <Card key={i} className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-12" />
+                    </div>
                     <Skeleton className="h-5 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <Skeleton className="h-5 w-24" />
                   </CardContent>
                 </Card>
               ))
@@ -235,20 +243,29 @@ const Landing = () => {
               highRelevanceServices.map((service) => (
                 <Card 
                   key={service.service_technical_id} 
-                  className="border-green-500/20 bg-green-500/5 hover:bg-green-500/10 transition-colors"
+                  className="border-border/50 hover:border-primary/50 transition-all card-hover"
                 >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate" title={service.service_technical_id}>
-                          {service.service_technical_id}
-                        </p>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                          {service.reason}
-                        </p>
-                      </div>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between mb-2">
+                      <Badge variant="outline" className="text-xs">
+                        Service
+                      </Badge>
+                      <Badge className="text-[10px] px-1.5 py-0.5 gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        Hoch
+                      </Badge>
                     </div>
+                    <CardTitle className="text-base leading-tight">
+                      {service.service_technical_id}
+                    </CardTitle>
+                    <CardDescription className="text-xs line-clamp-2">
+                      {service.reason}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <code className="bg-muted px-2 py-1 rounded text-[10px] text-muted-foreground">
+                      {service.service_technical_id}
+                    </code>
                   </CardContent>
                 </Card>
               ))
@@ -261,8 +278,8 @@ const Landing = () => {
 
           <div className="text-center mt-8">
             <Link to="/auth">
-              <Button variant="outline" className="border-green-500/30 text-green-600 dark:text-green-400 hover:bg-green-500/10">
-                Alle {highRelevanceServices?.length ? `${highRelevanceServices.length}+` : ''} Basis-relevanten Services ansehen
+              <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
+                Alle Basis-relevanten Services ansehen
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
