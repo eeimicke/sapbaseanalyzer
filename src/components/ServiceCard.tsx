@@ -30,7 +30,7 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis }: ServiceCardProps) {
   const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.fileName);
-  const { data: relevance, isLoading: isLoadingRelevance } = useServiceRelevance(service);
+  const { data: relevance, isLoading: isLoadingRelevance, reclassify } = useServiceRelevance(service);
   const [quickSummary, setQuickSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -116,11 +116,12 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
             <Badge variant="outline" className="text-xs">
               {service.category || "Service"}
             </Badge>
-            <RelevanceBadge 
-              relevance={relevance?.relevance} 
-              reason={relevance?.reason}
-              isLoading={isLoadingRelevance}
-            />
+                <RelevanceBadge 
+                  relevance={relevance?.relevance} 
+                  reason={relevance?.reason}
+                  isLoading={isLoadingRelevance}
+                  onReclassify={reclassify}
+                />
           </div>
           <div className="flex items-center gap-2">
             <a

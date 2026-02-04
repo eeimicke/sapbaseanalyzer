@@ -35,6 +35,7 @@ interface ClassifyRequest {
   serviceDescription: string;
   serviceCategory: string;
   technicalId: string;
+  forceReclassify?: boolean;
 }
 
 serve(async (req) => {
@@ -44,7 +45,7 @@ serve(async (req) => {
   }
 
   try {
-    const { serviceName, serviceDescription, serviceCategory, technicalId }: ClassifyRequest = await req.json();
+    const { serviceName, serviceDescription, serviceCategory, technicalId, forceReclassify }: ClassifyRequest = await req.json();
 
     if (!serviceName || !technicalId) {
       return new Response(
@@ -58,26 +59,30 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check cache first
-    const { data: cached } = await supabase
-      .from("service_relevance_cache")
-      .select("relevance, reason")
-      .eq("service_technical_id", technicalId)
-      .single();
+    // Check cache first (unless force reclassify)
+    if (!forceReclassify) {
+      const { data: cached } = await supabase
+        .from("service_relevance_cache")
+        .select("relevance, reason")
+        .eq("service_technical_id", technicalId)
+        .single();
 
-    if (cached) {
-      console.log(`Cache hit for ${technicalId}`);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: { 
-            relevance: cached.relevance, 
-            reason: cached.reason,
-            cached: true 
-          } 
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (cached) {
+        console.log(`Cache hit for ${technicalId}`);
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: { 
+              relevance: cached.relevance, 
+              reason: cached.reason,
+              cached: true 
+            } 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      console.log(`Force reclassify for ${technicalId}`);
     }
 
     // Call Lovable AI Gateway for classification
