@@ -889,10 +889,10 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2"
+                    className="w-full gap-2"
                     disabled={!fullBasisResult?.data?.content}
                     onClick={() => {
                       if (fullBasisResult?.data?.content && selectedService) {
@@ -915,7 +915,7 @@ const Index = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2"
+                    className="w-full gap-2"
                     disabled={!fullBasisResult?.data?.content}
                     onClick={() => {
                       if (fullBasisResult?.data?.content && selectedService) {
@@ -938,7 +938,7 @@ const Index = () => {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="flex-1 gap-2"
+                    className="w-full gap-2"
                     disabled={!fullBasisResult?.data?.content}
                     onClick={async () => {
                       if (fullBasisResult?.data?.content) {
