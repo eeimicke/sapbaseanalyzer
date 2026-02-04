@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/hooks/useTheme";
 import {
   Sparkles,
   Database,
@@ -15,6 +16,8 @@ import {
   Zap,
   Shield,
   Globe,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 const features = [
@@ -69,8 +72,10 @@ const steps = [
 ];
 
 const Landing = () => {
+  const { isDark, toggleTheme } = useTheme();
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
@@ -85,6 +90,14 @@ const Landing = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                className="rounded-lg"
+              >
+                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </Button>
               <a
                 href="https://www.linkedin.com/in/eeimicke"
                 target="_blank"
