@@ -19,13 +19,17 @@ interface RelevanceResponse {
 /**
  * Fetches or classifies the basis relevance of a single service
  */
-async function fetchServiceRelevance(service: ServiceInventoryItem): Promise<ServiceRelevance | null> {
+async function fetchServiceRelevance(
+  service: ServiceInventoryItem,
+  forceReclassify = false
+): Promise<ServiceRelevance | null> {
   const { data, error } = await supabase.functions.invoke<RelevanceResponse>("classify-relevance", {
     body: {
       serviceName: service.displayName,
       serviceDescription: service.description || "",
       serviceCategory: service.category || "",
       technicalId: service.technicalId,
+      forceReclassify,
     },
   });
 
@@ -46,7 +50,9 @@ async function fetchServiceRelevance(service: ServiceInventoryItem): Promise<Ser
  * Hook to get the relevance classification for a single service
  */
 export function useServiceRelevance(service: ServiceInventoryItem | null) {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["service-relevance", service?.technicalId],
     queryFn: () => (service ? fetchServiceRelevance(service) : null),
     enabled: !!service,
@@ -54,6 +60,16 @@ export function useServiceRelevance(service: ServiceInventoryItem | null) {
     gcTime: 1000 * 60 * 60 * 24, // 24 hours cache
     retry: 1,
   });
+
+  const reclassify = async () => {
+    if (!service) return;
+    const result = await fetchServiceRelevance(service, true);
+    if (result) {
+      queryClient.setQueryData(["service-relevance", service.technicalId], result);
+    }
+  };
+
+  return { ...query, reclassify };
 }
 
 /**

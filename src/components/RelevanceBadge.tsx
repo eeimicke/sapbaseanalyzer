@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw } from "lucide-react";
 import { type RelevanceLevel, relevanceColors, relevanceLabels } from "@/hooks/use-service-relevance";
 
 interface RelevanceBadgeProps {
@@ -8,10 +11,25 @@ interface RelevanceBadgeProps {
   reason?: string;
   isLoading?: boolean;
   compact?: boolean;
+  onReclassify?: () => Promise<void>;
 }
 
-export function RelevanceBadge({ relevance, reason, isLoading, compact = false }: RelevanceBadgeProps) {
-  if (isLoading) {
+export function RelevanceBadge({ relevance, reason, isLoading, compact = false, onReclassify }: RelevanceBadgeProps) {
+  const [isReclassifying, setIsReclassifying] = useState(false);
+
+  const handleReclassify = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onReclassify) return;
+    
+    setIsReclassifying(true);
+    try {
+      await onReclassify();
+    } finally {
+      setIsReclassifying(false);
+    }
+  };
+
+  if (isLoading || isReclassifying) {
     return <Skeleton className={compact ? "h-5 w-12" : "h-5 w-16"} />;
   }
 
@@ -32,17 +50,34 @@ export function RelevanceBadge({ relevance, reason, isLoading, compact = false }
     </Badge>
   );
 
-  if (reason) {
+  if (reason || onReclassify) {
     return (
       <TooltipProvider>
         <Tooltip delayDuration={300}>
           <TooltipTrigger asChild>{badge}</TooltipTrigger>
           <TooltipContent side="top" className="max-w-xs">
-            <p className="text-xs">
-              <span className="font-medium">Basis-Relevanz: {label}</span>
-              <br />
-              {reason}
-            </p>
+            <div className="space-y-2">
+              <p className="text-xs">
+                <span className="font-medium">Basis-Relevanz: {label}</span>
+                {reason && (
+                  <>
+                    <br />
+                    {reason}
+                  </>
+                )}
+              </p>
+              {onReclassify && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs w-full"
+                  onClick={handleReclassify}
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Neu klassifizieren
+                </Button>
+              )}
+            </div>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
