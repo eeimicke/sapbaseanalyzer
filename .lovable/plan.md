@@ -1,139 +1,71 @@
 
-# Plan: Verbesserter Basis-Prompt mit Git-Links und Service-Dokumentation
+# User Login Implementierung
 
-## Analyse des aktuellen Zustands
+## Übersicht
+Implementierung einer einfachen E-Mail/Passwort-Authentifizierung für den SAP Basis Analyzer. Der Login ermöglicht es Benutzern, sich anzumelden und die Anwendung zu nutzen.
 
-### Aktueller Basis-Prompt (aus DB)
-Der aktuelle Prompt fordert eine JSON-strukturierte Analyse mit Kategorien wie:
-- `basisRelevance`, `basisResponsibilities`, `nonBasisResponsibilities`
-- `interfacesAndConnectivity`, `securityAndIAMAspects`, `operationsAndMonitoring`
+## Was wird erstellt
 
-### Verfugbare Datenquellen
-Die folgenden Informationen stehen pro Service zur Verfugung:
+### 1. Login-Seite
+- Neue Seite `/auth` mit Login- und Registrierungsformular
+- Umschaltbar zwischen "Anmelden" und "Registrieren"
+- E-Mail und Passwort Eingabefelder
+- Passwort-Bestätigung bei Registrierung
+- Fehleranzeige bei ungültigen Eingaben
 
-1. **GitHub Repository Link**
-   - Format: `https://raw.githubusercontent.com/SAP-samples/btp-service-metadata/main/v1/developer/{fileName}.json`
-   - Beispiel fur Cloud Foundry Runtime: `application_runtime.json`
+### 2. Authentifizierungs-Hook
+- Neuer Hook `useAuth` für Session-Management
+- Automatische Session-Erkennung
+- Login, Logout und Registrierungs-Funktionen
+- Zentraler Auth-State für die gesamte Anwendung
 
-2. **Links aus den JSON-Files** (nach Classification gruppiert):
-   - Discovery Center (z.B. `https://discovery-center.cloud.sap/serviceCatalog/cloud-foundry-runtime`)
-   - Documentation (z.B. SAP Help Portal Links)
-   - API Hub, Support, Tutorial, Marketing, etc.
+### 3. Header-Integration
+- Login/Logout Button im Header
+- Anzeige der angemeldeten E-Mail-Adresse
+- Nahtlose Integration in das bestehende Design
 
-3. **Service-Metadaten**:
-   - servicePlans mit Regionen/DataCenters
-   - supportComponents (SAP Support-Komponenten)
-   - apis (API-Definitionen)
+### 4. Geschützte Routen
+- Weiterleitung zur Login-Seite für nicht angemeldete Benutzer
+- Automatische Weiterleitung nach erfolgreichem Login
 
-## Vorgeschlagener verbesserter Basis-Prompt
-
-Der neue Prompt soll:
-
-1. **Explizit auf die Dokumentationsquellen verweisen** - Perplexity soll die bereitgestellten Links als primare Recherchequellen nutzen
-
-2. **GitHub-Repository-Link integrieren** - Als Verweis auf die offizielle Metadaten-Quelle
-
-3. **Strukturierte Markdown-Ausgabe anfordern** - Statt JSON, da die Ausgabe fur Wiki-Export (Confluence) gedacht ist
-
-4. **SAP Basis-Perspektive beibehalten** - Fokus auf Operations, Security, Monitoring, Connectivity
-
-### Neuer Prompt-Text
+## Benutzerfluss
 
 ```text
-Du bist ein erfahrener SAP Basis-Administrator mit tiefem Verstandnis fur SAP BTP.
-
-## Deine Aufgabe
-Analysiere den bereitgestellten SAP BTP Service aus Basis-Perspektive und erstelle eine strukturierte Zusammenfassung fur ein internes Wiki (Confluence).
-
-## Recherche-Quellen
-Nutze die bereitgestellten Dokumentationslinks als primare Quellen:
-- Discovery Center: Offizielle Service-Ubersicht und Tutorials
-- SAP Help Portal: Technische Dokumentation und Konfigurationsanleitungen
-- API Hub: API-Referenzen und Integrationsdetails
-
-Die Service-Metadaten stammen aus dem offiziellen SAP GitHub Repository:
-https://github.com/SAP-samples/btp-service-metadata
-
-## Analyse-Struktur
-Erstelle die Analyse in folgendem Markdown-Format:
-
-### 1. Service-Uberblick
-- Kurzbeschreibung (2-3 Satze)
-- Hauptanwendungsfalle
-- Basis-Relevanz: [Hoch/Mittel/Niedrig]
-
-### 2. Basis-Verantwortlichkeiten
-Was liegt im Verantwortungsbereich von SAP Basis/Platform Operations?
-- Provisionierung und Setup
-- Subaccount-Konfiguration
-- Instanz-Management
-- Berechtigungen und Rollen
-
-### 3. Security und IAM
-- Erforderliche Rollen und Berechtigungskonzept
-- Authentifizierung (Identity Provider, SSO)
-- Zertifikatsverwaltung
-- Compliance-Aspekte
-
-### 4. Integration und Konnektivitat
-- Destinations und Cloud Connector
-- On-Premise-Anbindung
-- Abhangigkeiten zu anderen BTP Services
-- Netzwerk-Anforderungen
-
-### 5. Monitoring und Operations
-- Verfugbare Monitoring-Tools
-- Logging und Alerting
-- Health Checks
-- Performance-Metriken
-
-### 6. Lifecycle Management
-- Update-/Upgrade-Prozesse
-- Backup und Recovery
-- Deprecation-Hinweise
-- SLA-Informationen
-
-### 7. Nicht-Basis-Themen (zur Abgrenzung)
-Was gehort NICHT zu Basis, sondern zu Entwicklung/Fachbereich?
-
-### 8. Referenzen
-Liste der verwendeten Dokumentationslinks mit kurzer Beschreibung.
-
-## Wichtige Hinweise
-- Antworte auf Deutsch
-- Nutze Bullet Points fur bessere Lesbarkeit
-- Zitiere spezifische Dokumentationsseiten wo moglich
-- Kennzeichne unklare/nicht-dokumentierte Aspekte
++------------------+     +------------------+     +------------------+
+|   Nicht          |     |   Auth-Seite     |     |   Angemeldet     |
+|   angemeldet     | --> |   Login/Register | --> |   SAP Analyzer   |
++------------------+     +------------------+     +------------------+
+                                                         |
+                                                         v
+                                                  +------------------+
+                                                  |   Logout-Button  |
+                                                  |   im Header      |
+                                                  +------------------+
 ```
 
-## Technische Umsetzung
+## Technische Details
 
-### Schritt 1: Datenbank-Prompt aktualisieren
-- SQL-Migration zum Aktualisieren des `prompt_text` in der `analysis_prompts` Tabelle
-- Alternativ: UI-Anpassung zum Bearbeiten des Prompts direkt in der Anwendung
+### Neue Dateien
+| Datei | Beschreibung |
+|-------|--------------|
+| `src/pages/Auth.tsx` | Login/Registrierungs-Seite mit Formular |
+| `src/hooks/useAuth.ts` | Authentifizierungs-Hook mit Session-Management |
+| `src/components/ProtectedRoute.tsx` | Wrapper für geschützte Routen |
 
-### Schritt 2: Service-Kontext erweitern
-In `src/lib/api/perplexity.ts` den GitHub-Repository-Link zum Service-Kontext hinzufugen:
+### Geänderte Dateien
+| Datei | Änderung |
+|-------|----------|
+| `src/App.tsx` | Neue Route `/auth` und Auth-Provider hinzufügen |
+| `src/pages/Index.tsx` | Login-Status im Header anzeigen, Logout-Button |
 
-```typescript
-// In analyzeWithFullContext()
-const githubRepoUrl = `https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${serviceDetails.fileName || serviceName.toLowerCase()}.json`;
-```
+### Authentifizierungs-Logik
+- E-Mail-Verifizierung erforderlich (Standard-Sicherheit)
+- Session wird automatisch beim App-Start geprüft
+- Auth-State wird über React Context geteilt
+- Sichere Passwort-Validierung (min. 6 Zeichen)
 
-### Schritt 3: Edge Function anpassen
-In `supabase/functions/perplexity-analyze/index.ts` die `formatServiceContext()` Funktion erweitern:
-- GitHub-Repository-Link als Quellenverweis hinzufugen
-- Links nach Classification gruppiert und priorisiert darstellen
-
-### Schritt 4: UI-Anpassung (optional)
-- Im Prompt-Editor (Step 2) einen "Reset to Default" Button hinzufugen
-- Vorschau des generierten Service-Kontexts anzeigen
-
-## Erwartete Verbesserungen
-
-| Aspekt | Vorher | Nachher |
-|--------|--------|---------|
-| Ausgabe-Format | JSON (schwer lesbar) | Markdown (Wiki-ready) |
-| Quellen-Referenz | Nicht explizit | GitHub + Doku-Links |
-| Wiki-Export | Erfordert Transformation | Direkt nutzbar |
-| Struktur | Technisch fur Entwickler | Optimiert fur Confluence |
+### UI-Design
+- Passt zum bestehenden Nagarro-Gradient Design
+- Dark/Light Mode Unterstützung
+- Responsive für Mobile und Desktop
+- Konsistente Fehlerbehandlung mit Toast-Benachrichtigungen
