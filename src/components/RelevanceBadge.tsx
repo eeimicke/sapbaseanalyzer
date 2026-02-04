@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw } from "lucide-react";
-import { type RelevanceLevel, relevanceColors, relevanceLabels } from "@/hooks/use-service-relevance";
+import { type RelevanceLevel, relevanceColors } from "@/hooks/use-service-relevance";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface RelevanceBadgeProps {
   relevance: RelevanceLevel | null | undefined;
@@ -16,6 +17,17 @@ interface RelevanceBadgeProps {
 
 export function RelevanceBadge({ relevance, reason, isLoading, compact = false, onReclassify }: RelevanceBadgeProps) {
   const [isReclassifying, setIsReclassifying] = useState(false);
+  const { t } = useLanguage();
+
+  // Translated labels
+  const getLabel = (rel: RelevanceLevel) => {
+    switch (rel) {
+      case "hoch": return t("relevanceBadge.high");
+      case "mittel": return t("relevanceBadge.medium");
+      case "niedrig": return t("relevanceBadge.low");
+      default: return rel;
+    }
+  };
 
   const handleReclassify = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -38,7 +50,7 @@ export function RelevanceBadge({ relevance, reason, isLoading, compact = false, 
   }
 
   const colors = relevanceColors[relevance];
-  const label = relevanceLabels[relevance];
+  const label = getLabel(relevance);
 
   const badge = (
     <Badge
@@ -58,7 +70,7 @@ export function RelevanceBadge({ relevance, reason, isLoading, compact = false, 
           <TooltipContent side="top" className="max-w-xs">
             <div className="space-y-2">
               <p className="text-xs">
-                <span className="font-medium">Basis-Relevanz: {label}</span>
+                <span className="font-medium">{t("relevanceBadge.basisRelevance")}: {label}</span>
                 {reason && (
                   <>
                     <br />
@@ -74,7 +86,7 @@ export function RelevanceBadge({ relevance, reason, isLoading, compact = false, 
                   onClick={handleReclassify}
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Neu klassifizieren
+                  {t("relevanceBadge.reclassify")}
                 </Button>
               )}
             </div>

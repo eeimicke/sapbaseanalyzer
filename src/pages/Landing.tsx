@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/hooks/useTheme";
+import { useLanguage } from "@/hooks/useLanguage";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useServiceInventory } from "@/hooks/use-sap-services";
@@ -28,61 +30,63 @@ import {
   CircleCheck,
 } from "lucide-react";
 
-const features = [
-  {
-    icon: Database,
-    title: "589+ SAP BTP Services",
-    description: "Zugriff auf den kompletten SAP BTP Service-Katalog direkt vom offiziellen GitHub Repository.",
-  },
-  {
-    icon: Bot,
-    title: "KI-gestützte Analyse",
-    description: "Perplexity AI analysiert Services und liefert strukturierte Basis-Dokumentation.",
-  },
-  {
-    icon: FileText,
-    title: "Wiki-Export",
-    description: "Exportieren Sie Analysen als Confluence-Wiki oder Markdown für Ihre Dokumentation.",
-  },
-  {
-    icon: Zap,
-    title: "Echtzeit-Daten",
-    description: "Immer aktuelle Service-Metadaten direkt von SAP-samples/btp-service-metadata.",
-  },
-  {
-    icon: Shield,
-    title: "Enterprise-Ready",
-    description: "Sichere Authentifizierung und datenschutzkonforme Verarbeitung Ihrer Analysen.",
-  },
-  {
-    icon: Globe,
-    title: "Cloud-Native",
-    description: "Vollständig in der Cloud gehostet, jederzeit und überall verfügbar.",
-  },
-];
-
-const steps = [
-  {
-    step: "01",
-    title: "Service auswählen",
-    description: "Wählen Sie aus über 589 SAP BTP Services den gewünschten Service für die Analyse.",
-  },
-  {
-    step: "02",
-    title: "KI-Analyse starten",
-    description: "Unsere KI analysiert den Service und erstellt eine strukturierte Basis-Dokumentation.",
-  },
-  {
-    step: "03",
-    title: "Exportieren",
-    description: "Exportieren Sie die Ergebnisse als Confluence-Wiki oder Markdown in Ihre Dokumentation.",
-  },
-];
-
 const Landing = () => {
   const { isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
+
+  // Features with translations
+  const features = [
+    {
+      icon: Database,
+      titleKey: "features.services.title",
+      descriptionKey: "features.services.description",
+    },
+    {
+      icon: Bot,
+      titleKey: "features.ai.title",
+      descriptionKey: "features.ai.description",
+    },
+    {
+      icon: FileText,
+      titleKey: "features.export.title",
+      descriptionKey: "features.export.description",
+    },
+    {
+      icon: Zap,
+      titleKey: "features.realtime.title",
+      descriptionKey: "features.realtime.description",
+    },
+    {
+      icon: Shield,
+      titleKey: "features.enterprise.title",
+      descriptionKey: "features.enterprise.description",
+    },
+    {
+      icon: Globe,
+      titleKey: "features.cloud.title",
+      descriptionKey: "features.cloud.description",
+    },
+  ];
+
+  const steps = [
+    {
+      step: "01",
+      titleKey: "workflow.step1.title",
+      descriptionKey: "workflow.step1.description",
+    },
+    {
+      step: "02",
+      titleKey: "workflow.step2.title",
+      descriptionKey: "workflow.step2.description",
+    },
+    {
+      step: "03",
+      titleKey: "workflow.step3.title",
+      descriptionKey: "workflow.step3.description",
+    },
+  ];
 
   // Lade Service-Inventar von GitHub
   const { data: services, isLoading: isLoadingInventory } = useServiceInventory();
@@ -134,11 +138,12 @@ const Landing = () => {
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-semibold tracking-tight truncate">SAP Basis Analyzer</h1>
-                <p className="text-xs text-muted-foreground hidden sm:block">by Ernst Eimicke</p>
+                <h1 className="text-base sm:text-xl font-semibold tracking-tight truncate">{t("header.title")}</h1>
+                <p className="text-xs text-muted-foreground hidden sm:block">{t("header.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+              <LanguageToggle />
               <Button
                 variant="ghost"
                 size="icon"
@@ -158,17 +163,17 @@ const Landing = () => {
               </a>
               <Badge variant="outline" className="text-xs px-2 sm:px-3 py-1 border-primary/30 text-primary hidden lg:flex">
                 <Github className="w-3 h-3 mr-1" />
-                Open Source Data
+                {t("header.openSource")}
               </Badge>
               <Link to="/auth" className="hidden sm:block">
                 <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
-                  Anmelden
+                  {t("header.login")}
                 </Button>
               </Link>
               <Link to="/auth">
                 <Button size="sm" className="nagarro-gradient text-background nagarro-glow h-8 text-xs sm:text-sm px-2 sm:px-4">
-                  <span className="hidden sm:inline">Kostenlos starten</span>
-                  <span className="sm:hidden">Start</span>
+                  <span className="hidden sm:inline">{t("header.start")}</span>
+                  <span className="sm:hidden">{t("header.startShort")}</span>
                 </Button>
               </Link>
             </div>
@@ -183,23 +188,22 @@ const Landing = () => {
           <div className="max-w-4xl mx-auto text-center space-y-8">
             <Badge className="nagarro-gradient text-background px-4 py-1.5 text-sm">
               <Sparkles className="w-3.5 h-3.5 mr-2" />
-              Powered by Perplexity AI
+              {t("hero.badge")}
             </Badge>
             
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight leading-tight">
-              SAP BTP Services
-              <span className="block text-primary">intelligent analysiert</span>
+              {t("hero.title1")}
+              <span className="block text-primary">{t("hero.title2")}</span>
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Analysieren Sie über 589 SAP BTP Services mit KI-Unterstützung und erstellen Sie 
-              strukturierte Basis-Dokumentation für Ihr Team.
+              {t("hero.description")}
             </p>
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/auth">
                 <Button size="lg" className="nagarro-gradient text-background nagarro-glow h-12 px-8 text-base">
-                  Jetzt starten
+                  {t("hero.cta")}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
@@ -210,7 +214,7 @@ const Landing = () => {
               >
                 <Button size="lg" variant="outline" className="h-12 px-8 text-base">
                   <Github className="w-4 h-4 mr-2" />
-                  Datenquelle ansehen
+                  {t("hero.dataSource")}
                 </Button>
               </a>
             </div>
@@ -219,15 +223,15 @@ const Landing = () => {
             <div className="flex flex-wrap items-center justify-center gap-8 pt-8 border-t border-border/50 mt-12">
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">589+</p>
-                <p className="text-sm text-muted-foreground">SAP BTP Services</p>
+                <p className="text-sm text-muted-foreground">{t("hero.stat1")}</p>
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">AI</p>
-                <p className="text-sm text-muted-foreground">Powered Analysis</p>
+                <p className="text-sm text-muted-foreground">{t("hero.stat2")}</p>
               </div>
               <div className="text-center">
                 <p className="text-3xl font-bold text-primary">100%</p>
-                <p className="text-sm text-muted-foreground">Cloud-Native</p>
+                <p className="text-sm text-muted-foreground">{t("hero.stat3")}</p>
               </div>
             </div>
           </div>
@@ -240,13 +244,13 @@ const Landing = () => {
           <div className="text-center mb-10">
             <Badge className="mb-4 bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
               <CircleCheck className="w-3 h-3 mr-1.5" />
-              Hohe Basis-Relevanz
+              {t("relevance.badge")}
             </Badge>
             <h2 className="text-2xl md:text-3xl font-bold mb-3">
-              Services für SAP Basis-Administratoren
+              {t("relevance.title")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
-              Diese Services wurden von unserer KI als besonders relevant für SAP Basis-Aufgaben klassifiziert.
+              {t("relevance.description")}
             </p>
           </div>
 
@@ -280,7 +284,7 @@ const Landing = () => {
               ))
             ) : (
               <div className="col-span-full text-center text-muted-foreground py-8">
-                <p className="text-sm">Starte die App um Services zu klassifizieren</p>
+                <p className="text-sm">{t("relevance.empty")}</p>
               </div>
             )}
           </div>
@@ -292,12 +296,12 @@ const Landing = () => {
                 <Shield className="w-4 h-4 text-primary" />
               </div>
               <p className="text-muted-foreground">
-                <span className="font-medium text-foreground">Anmeldung erforderlich:</span>{" "}
-                Für die vollständige KI-Analyse, Perplexity-Integration und den Export nach Confluence ist eine kostenlose Registrierung notwendig.
+                <span className="font-medium text-foreground">{t("relevance.loginRequired")}</span>{" "}
+                {t("relevance.loginDescription")}
               </p>
               <Link to="/auth" className="flex-shrink-0">
                 <Button size="sm" className="nagarro-gradient text-background nagarro-glow h-8">
-                  Anmelden
+                  {t("relevance.loginButton")}
                 </Button>
               </Link>
             </div>
@@ -306,7 +310,7 @@ const Landing = () => {
           <div className="text-center mt-6">
             <Link to="/auth">
               <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
-                Alle Basis-relevanten Services ansehen
+                {t("relevance.viewAll")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
@@ -318,13 +322,12 @@ const Landing = () => {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4">Features</Badge>
+            <Badge variant="outline" className="mb-4">{t("features.badge")}</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Alles was Sie brauchen
+              {t("features.title")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Der SAP Basis Analyzer kombiniert aktuelle SAP-Metadaten mit 
-              fortschrittlicher KI-Analyse für optimale Ergebnisse.
+              {t("features.description")}
             </p>
           </div>
 
@@ -335,11 +338,11 @@ const Landing = () => {
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
                     <feature.icon className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg">{t(feature.titleKey)}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="text-sm leading-relaxed">
-                    {feature.description}
+                    {t(feature.descriptionKey)}
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -352,12 +355,12 @@ const Landing = () => {
       <section className="py-20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <Badge variant="outline" className="mb-4">Workflow</Badge>
+            <Badge variant="outline" className="mb-4">{t("workflow.badge")}</Badge>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              In 3 Schritten zur Dokumentation
+              {t("workflow.title")}
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Einfacher Workflow für schnelle und präzise Service-Analysen.
+              {t("workflow.description")}
             </p>
           </div>
 
@@ -369,8 +372,8 @@ const Landing = () => {
                     <div className="w-16 h-16 rounded-2xl nagarro-gradient flex items-center justify-center mb-6 nagarro-glow">
                       <span className="text-2xl font-bold text-background">{step.step}</span>
                     </div>
-                    <h3 className="text-xl font-semibold mb-3">{step.title}</h3>
-                    <p className="text-muted-foreground text-sm">{step.description}</p>
+                    <h3 className="text-xl font-semibold mb-3">{t(step.titleKey)}</h3>
+                    <p className="text-muted-foreground text-sm">{t(step.descriptionKey)}</p>
                   </div>
                   {index < steps.length - 1 && (
                     <ArrowRight className="hidden md:block absolute top-8 -right-4 w-8 h-8 text-primary/30" />
@@ -383,7 +386,7 @@ const Landing = () => {
           <div className="text-center mt-16">
             <Link to="/auth">
               <Button size="lg" className="nagarro-gradient text-background nagarro-glow h-12 px-8">
-                Jetzt kostenlos testen
+                {t("workflow.cta")}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
@@ -399,16 +402,15 @@ const Landing = () => {
             <CardContent className="p-12 md:p-16 relative">
               <div className="max-w-2xl">
                 <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                  Bereit für effizientere SAP-Dokumentation?
+                  {t("cta.title")}
                 </h2>
                 <p className="text-muted-foreground mb-8 text-lg">
-                  Starten Sie jetzt und erstellen Sie in Minuten strukturierte 
-                  Basis-Dokumentation für Ihre SAP BTP Services.
+                  {t("cta.description")}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/auth">
                     <Button size="lg" className="nagarro-gradient text-background nagarro-glow h-12 px-8">
-                      Kostenlos registrieren
+                      {t("cta.register")}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   </Link>
@@ -419,22 +421,22 @@ const Landing = () => {
                   >
                     <Button size="lg" variant="outline" className="h-12 px-8">
                       <ExternalLink className="w-4 h-4 mr-2" />
-                      SAP Metadaten
+                      {t("cta.metadata")}
                     </Button>
                   </a>
                 </div>
                 <div className="flex items-center gap-6 mt-8 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Keine Kreditkarte
+                    {t("cta.noCard")}
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    Sofort einsatzbereit
+                    {t("cta.instant")}
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-primary" />
-                    DSGVO-konform
+                    {t("cta.gdpr")}
                   </div>
                 </div>
               </div>
@@ -452,11 +454,11 @@ const Landing = () => {
                 <Sparkles className="w-4 h-4 text-background" />
               </div>
               <p className="text-sm text-muted-foreground">
-                SAP Basis Analyzer • Powered by Perplexity AI
+                {t("footer.poweredBy")}
               </p>
             </div>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
-              Created by Ernst Eimicke
+              {t("footer.createdBy")}
               <span className="text-border">•</span>
               <a
                 href="https://www.linkedin.com/in/eeimicke"

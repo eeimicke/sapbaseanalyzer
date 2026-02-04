@@ -7,6 +7,7 @@ import { type ServiceInventoryItem, type ServiceDetails } from "@/lib/sap-servic
 import { useServiceDetails } from "@/hooks/use-sap-services";
 import { useServiceRelevance } from "@/hooks/use-service-relevance";
 import { RelevanceBadge } from "@/components/RelevanceBadge";
+import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
 
 // Icon-Mapping für Link-Classifications
@@ -31,6 +32,7 @@ interface ServiceCardProps {
 export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis }: ServiceCardProps) {
   const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.fileName);
   const { data: relevance, isLoading: isLoadingRelevance, reclassify } = useServiceRelevance(service);
+  const { t, language } = useLanguage();
   const [quickSummary, setQuickSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
             setSummaryError(data.error);
           }
         } catch (err) {
-          setSummaryError(err instanceof Error ? err.message : 'Unbekannter Fehler');
+          setSummaryError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
           setIsLoadingSummary(false);
         }
@@ -100,6 +102,13 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
       setSummaryError(null);
     }
   }, [isSelected]);
+
+  const noDescriptionText = language === 'de' ? 'Keine Beschreibung verfügbar' : 'No description available';
+  const aiSummaryLabel = language === 'de' ? 'Perplexity KI-Zusammenfassung' : 'Perplexity AI Summary';
+  const researchingText = language === 'de' ? 'Recherchiere mit' : 'Researching with';
+  const urlsText = 'URLs...';
+  const loadingLinksText = language === 'de' ? 'Lade Links...' : 'Loading links...';
+  const noLinksText = language === 'de' ? 'Keine Links verfügbar' : 'No links available';
 
   return (
     <Card
@@ -130,7 +139,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="text-muted-foreground hover:text-primary transition-colors"
-              title="Service-Metadaten auf GitHub"
+              title={t("serviceCard.viewOnGithub")}
             >
               <Github className="w-4 h-4" />
             </a>
@@ -143,7 +152,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
         </div>
         <CardTitle className="text-base leading-tight">{service.displayName}</CardTitle>
         <CardDescription className="text-xs line-clamp-2">
-          {service.description || "Keine Beschreibung verfügbar"}
+          {service.description || noDescriptionText}
         </CardDescription>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
@@ -190,13 +199,13 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
                 <Sparkles className="w-3.5 h-3.5" />
-                Perplexity KI-Zusammenfassung
+                {aiSummaryLabel}
               </div>
               <div className="pl-5">
                 {isLoadingSummary ? (
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Recherchiere mit {classifications.length > 0 ? Object.values(groupedLinks).flat().length : 0} URLs...
+                    {researchingText} {classifications.length > 0 ? Object.values(groupedLinks).flat().length : 0} {urlsText}
                   </div>
                 ) : summaryError ? (
                   <p className="text-xs text-destructive">{summaryError}</p>
@@ -210,7 +219,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
             {isLoadingDetails ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Lade Links...
+                {loadingLinksText}
               </div>
             ) : classifications.length > 0 ? (
               classifications.map((classification) => {
@@ -242,7 +251,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                 );
               })
             ) : (
-              <p className="text-xs text-muted-foreground">Keine Links verfügbar</p>
+              <p className="text-xs text-muted-foreground">{noLinksText}</p>
             )}
 
             {/* Proceed Button */}
@@ -256,7 +265,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                 size="sm"
               >
                 <Sparkles className="w-4 h-4" />
-                An Basis-Analyse übergeben
+                {t("serviceCard.proceedToAnalysis")}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             )}
