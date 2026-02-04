@@ -31,10 +31,74 @@ interface AnalysisRequest {
   githubRepoUrl?: string;
   category: 'security' | 'integration' | 'monitoring' | 'lifecycle' | 'quick-summary' | 'full-basis';
   basePrompt?: string;
+  language?: 'en' | 'de';
 }
 
-const categoryPrompts: Record<string, string> = {
-  security: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Berechtigungen & Security" für den angegebenen SAP BTP Service.
+// Language-specific prompts
+const getCategoryPrompts = (language: 'en' | 'de'): Record<string, string> => {
+  if (language === 'en') {
+    return {
+      security: `You are an SAP Basis expert. Research current information on the web and create a structured analysis for the "Permissions & Security" area for the specified SAP BTP Service.
+
+Focus on:
+- Required roles and permissions
+- Security configurations
+- Authentication and authorization
+- Compliance requirements
+- Security recommendations
+
+Use the provided links as a starting point for your research.
+Respond in English in structured Markdown format with clear headings and bullet points.`,
+
+      integration: `You are an SAP Basis expert. Research current information on the web and create a structured analysis for the "Integration & Connectivity" area for the specified SAP BTP Service.
+
+Focus on:
+- Required connections (Destinations, Connectivity)
+- API integrations
+- Protocols and standards
+- Network requirements
+- Dependencies on other services
+
+Use the provided links as a starting point for your research.
+Respond in English in structured Markdown format with clear headings and bullet points.`,
+
+      monitoring: `You are an SAP Basis expert. Research current information on the web and create a structured analysis for the "Monitoring & Operations" area for the specified SAP BTP Service.
+
+Focus on:
+- Monitoring capabilities
+- Logging and tracing
+- Alerting options
+- Performance metrics
+- Troubleshooting hints
+
+Use the provided links as a starting point for your research.
+Respond in English in structured Markdown format with clear headings and bullet points.`,
+
+      lifecycle: `You are an SAP Basis expert. Research current information on the web and create a structured analysis for the "Lifecycle Management" area for the specified SAP BTP Service.
+
+Focus on:
+- Update and upgrade processes
+- Backup and recovery
+- Tenant management
+- Scaling
+- Deprecation notices
+
+Use the provided links as a starting point for your research.
+Respond in English in structured Markdown format with clear headings and bullet points.`,
+
+      'quick-summary': `You are an SAP expert. Create a very brief summary (max. 2-3 sentences) of the specified SAP BTP Service.
+
+Describe in a maximum of 50 words:
+- What the service does
+- Who it is intended for
+
+Use the provided links for research. Respond in English, concise and without formatting.`,
+    };
+  }
+  
+  // German prompts (default)
+  return {
+    security: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Berechtigungen & Security" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Erforderliche Rollen und Berechtigungen
@@ -46,7 +110,7 @@ Fokussiere auf:
 Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  integration: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Integration & Konnektivität" für den angegebenen SAP BTP Service.
+    integration: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Integration & Konnektivität" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Erforderliche Verbindungen (Destinations, Connectivity)
@@ -58,7 +122,7 @@ Fokussiere auf:
 Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  monitoring: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Monitoring & Operations" für den angegebenen SAP BTP Service.
+    monitoring: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Monitoring & Operations" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Monitoring-Möglichkeiten
@@ -70,7 +134,7 @@ Fokussiere auf:
 Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  lifecycle: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Lifecycle Management" für den angegebenen SAP BTP Service.
+    lifecycle: `Du bist ein SAP Basis-Experte. Recherchiere im Web nach aktuellen Informationen und erstelle eine strukturierte Analyse für den Bereich "Lifecycle Management" für den angegebenen SAP BTP Service.
 
 Fokussiere auf:
 - Update- und Upgrade-Prozesse
@@ -82,13 +146,58 @@ Fokussiere auf:
 Nutze die bereitgestellten Links als Ausgangspunkt für deine Recherche.
 Antworte auf Deutsch in strukturiertem Markdown-Format mit klaren Überschriften und Bullet Points.`,
 
-  'quick-summary': `Du bist ein SAP-Experte. Erstelle eine sehr kurze Zusammenfassung (max. 2-3 Sätze) des angegebenen SAP BTP Services.
+    'quick-summary': `Du bist ein SAP-Experte. Erstelle eine sehr kurze Zusammenfassung (max. 2-3 Sätze) des angegebenen SAP BTP Services.
 
 Beschreibe in maximal 50 Wörtern:
 - Was der Service macht
 - Für wen er gedacht ist
 
 Nutze die bereitgestellten Links für die Recherche. Antworte auf Deutsch, prägnant und ohne Formatierung.`,
+  };
+};
+
+// Language-specific labels for service context formatting
+const getContextLabels = (language: 'en' | 'de') => {
+  if (language === 'en') {
+    return {
+      description: 'Description',
+      noDescription: 'No description available.',
+      metadataSource: 'Metadata Source',
+      metadataSourceText: 'The service metadata comes from the official SAP GitHub Repository:',
+      serviceMetadataJson: 'Service Metadata JSON',
+      documentationLinks: 'Documentation Links',
+      useLinksText: 'Use these links as primary research sources:',
+      servicePlans: 'Service Plans',
+      free: '(free)',
+      availableRegions: 'Available regions:',
+      supportComponents: 'Support Components',
+      analyzeInstruction: 'Please analyze this service according to the structure in the system prompt.',
+      noLinksAvailable: 'No links available.',
+      analyzeService: 'Analyze the SAP BTP Service',
+      relevantLinks: 'Relevant Documentation Links:',
+      researchInstruction: 'Please research current information about this service on the web and create a detailed analysis. Use the above links as a starting point.',
+      createSummary: 'Create a very brief summary.',
+    };
+  }
+  return {
+    description: 'Beschreibung',
+    noDescription: 'Keine Beschreibung verfügbar.',
+    metadataSource: 'Metadaten-Quelle',
+    metadataSourceText: 'Die Service-Metadaten stammen aus dem offiziellen SAP GitHub Repository:',
+    serviceMetadataJson: 'Service-Metadaten JSON',
+    documentationLinks: 'Dokumentationslinks',
+    useLinksText: 'Nutze diese Links als primäre Recherchequellen:',
+    servicePlans: 'Service-Plans',
+    free: '(kostenlos)',
+    availableRegions: 'Verfügbare Regionen:',
+    supportComponents: 'Support-Komponenten',
+    analyzeInstruction: 'Bitte analysiere diesen Service gemäß der Struktur im System-Prompt.',
+    noLinksAvailable: 'Keine Links verfügbar.',
+    analyzeService: 'Analysiere den SAP BTP Service',
+    relevantLinks: 'Relevante Dokumentationslinks:',
+    researchInstruction: 'Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und erstelle eine detaillierte Analyse. Nutze die obigen Links als Ausgangspunkt.',
+    createSummary: 'Erstelle eine sehr kurze Zusammenfassung.',
+  };
 };
 
 // Format service metadata for the user message in full-basis analysis
@@ -96,26 +205,28 @@ function formatServiceContext(
   serviceName: string,
   serviceDescription: string,
   serviceLinks: ServiceLink[],
-  servicePlans?: ServicePlanContext[],
-  supportComponents?: SupportComponent[],
-  githubRepoUrl?: string
+  servicePlans: ServicePlanContext[] | undefined,
+  supportComponents: SupportComponent[] | undefined,
+  githubRepoUrl: string | undefined,
+  language: 'en' | 'de'
 ): string {
+  const labels = getContextLabels(language);
   const sections: string[] = [];
 
   sections.push(`# SAP BTP Service: ${serviceName}`);
-  sections.push(`\n## Beschreibung\n${serviceDescription || 'Keine Beschreibung verfügbar.'}`);
+  sections.push(`\n## ${labels.description}\n${serviceDescription || labels.noDescription}`);
 
   // Add GitHub source reference
   if (githubRepoUrl) {
-    sections.push(`\n## Metadaten-Quelle`);
-    sections.push(`Die Service-Metadaten stammen aus dem offiziellen SAP GitHub Repository:`);
-    sections.push(`- [Service-Metadaten JSON](${githubRepoUrl})`);
+    sections.push(`\n## ${labels.metadataSource}`);
+    sections.push(labels.metadataSourceText);
+    sections.push(`- [${labels.serviceMetadataJson}](${githubRepoUrl})`);
   }
 
   // Format links by classification (prioritized order)
   if (serviceLinks && serviceLinks.length > 0) {
-    sections.push('\n## Dokumentationslinks');
-    sections.push('Nutze diese Links als primäre Recherchequellen:');
+    sections.push(`\n## ${labels.documentationLinks}`);
+    sections.push(labels.useLinksText);
     
     const linksByClass: Record<string, ServiceLink[]> = {};
     for (const link of serviceLinks) {
@@ -143,28 +254,28 @@ function formatServiceContext(
 
   // Format service plans
   if (servicePlans && servicePlans.length > 0) {
-    sections.push('\n## Service-Plans');
+    sections.push(`\n## ${labels.servicePlans}`);
     for (const plan of servicePlans) {
-      const freeTag = plan.isFree ? ' (kostenlos)' : '';
+      const freeTag = plan.isFree ? ` ${labels.free}` : '';
       sections.push(`\n### ${plan.displayName}${freeTag}`);
       if (plan.description) {
         sections.push(plan.description);
       }
       if (plan.regions && plan.regions.length > 0) {
-        sections.push(`Verfügbare Regionen: ${plan.regions.join(', ')}`);
+        sections.push(`${labels.availableRegions} ${plan.regions.join(', ')}`);
       }
     }
   }
 
   // Format support components
   if (supportComponents && supportComponents.length > 0) {
-    sections.push('\n## Support-Komponenten');
+    sections.push(`\n## ${labels.supportComponents}`);
     for (const comp of supportComponents) {
       sections.push(`- ${comp.value} (${comp.classification})`);
     }
   }
 
-  sections.push('\n---\nBitte analysiere diesen Service gemäß der Struktur im System-Prompt.');
+  sections.push(`\n---\n${labels.analyzeInstruction}`);
 
   return sections.join('\n');
 }
@@ -183,7 +294,8 @@ Deno.serve(async (req) => {
       supportComponents,
       githubRepoUrl,
       category,
-      basePrompt 
+      basePrompt,
+      language = 'en'
     }: AnalysisRequest = await req.json();
 
     if (!serviceName || !category) {
@@ -202,6 +314,10 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Get language-specific prompts
+    const categoryPrompts = getCategoryPrompts(language);
+    const labels = getContextLabels(language);
+
     // Determine system prompt and user message based on category
     let systemPrompt: string;
     let userMessage: string;
@@ -209,16 +325,24 @@ Deno.serve(async (req) => {
 
     if (category === 'full-basis') {
       // Use the base prompt from DB (passed from frontend) as system prompt
-      systemPrompt = basePrompt || 'Du bist ein erfahrener SAP Basis-Administrator. Analysiere den folgenden Service.';
+      // Add language instruction to ensure response is in the correct language
+      const languageInstruction = language === 'en' 
+        ? '\n\nIMPORTANT: Respond entirely in English.'
+        : '\n\nWICHTIG: Antworte komplett auf Deutsch.';
       
-      // Format full service context as user message (now includes GitHub link)
+      systemPrompt = (basePrompt || (language === 'en' 
+        ? 'You are an experienced SAP Basis Administrator. Analyze the following service.'
+        : 'Du bist ein erfahrener SAP Basis-Administrator. Analysiere den folgenden Service.')) + languageInstruction;
+      
+      // Format full service context as user message
       userMessage = formatServiceContext(
         serviceName,
         serviceDescription,
         serviceLinks,
         servicePlans,
         supportComponents,
-        githubRepoUrl
+        githubRepoUrl,
+        language
       );
       maxTokens = 4000;
     } else if (category === 'quick-summary') {
@@ -229,12 +353,12 @@ Deno.serve(async (req) => {
             .filter(l => l.value?.startsWith('http'))
             .map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`)
             .join('\n')
-        : 'Keine Links verfügbar.';
+        : labels.noLinksAvailable;
 
       userMessage = `SAP BTP Service: "${serviceName}"
-Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
+${labels.description}: ${serviceDescription || labels.noDescription}
 Links: ${linksContext}
-Erstelle eine sehr kurze Zusammenfassung.`;
+${labels.createSummary}`;
       maxTokens = 150;
     } else {
       systemPrompt = categoryPrompts[category];
@@ -250,20 +374,20 @@ Erstelle eine sehr kurze Zusammenfassung.`;
             .filter(l => l.value?.startsWith('http'))
             .map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`)
             .join('\n')
-        : 'Keine Links verfügbar.';
+        : labels.noLinksAvailable;
 
-      userMessage = `Analysiere den SAP BTP Service "${serviceName}".
+      userMessage = `${labels.analyzeService} "${serviceName}".
 
-Beschreibung: ${serviceDescription || 'Keine Beschreibung verfügbar.'}
+${labels.description}: ${serviceDescription || labels.noDescription}
 
-Relevante Dokumentationslinks:
+${labels.relevantLinks}
 ${linksContext}
 
-Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und erstelle eine detaillierte Analyse. Nutze die obigen Links als Ausgangspunkt.`;
+${labels.researchInstruction}`;
       maxTokens = 2000;
     }
 
-    console.log(`Analyzing ${serviceName} for category: ${category}`);
+    console.log(`Analyzing ${serviceName} for category: ${category} in language: ${language}`);
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -292,7 +416,7 @@ Bitte recherchiere im Web nach aktuellen Informationen zu diesem Service und ers
       );
     }
 
-    const analysisContent = data.choices?.[0]?.message?.content || 'Keine Analyse verfügbar.';
+    const analysisContent = data.choices?.[0]?.message?.content || (language === 'en' ? 'No analysis available.' : 'Keine Analyse verfügbar.');
     const citations = data.citations || [];
 
     console.log(`Analysis complete for ${category}`);

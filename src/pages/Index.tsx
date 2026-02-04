@@ -74,7 +74,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<ServiceDetails | null>(null);
@@ -231,7 +231,8 @@ const Index = () => {
         selectedService.description || '',
         activeServiceDetails,
         prompt.prompt_text,
-        selectedService.fileName
+        selectedService.fileName,
+        language
       );
 
       setAnalysisProgress(100);
