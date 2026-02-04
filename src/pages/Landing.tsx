@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/hooks/useTheme";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useServiceInventory } from "@/hooks/use-sap-services";
+import { ServiceCard } from "@/components/ServiceCard";
+import { type ServiceInventoryItem } from "@/lib/sap-services";
 import {
   Sparkles,
   Database,
@@ -77,22 +81,47 @@ const steps = [
 
 const Landing = () => {
   const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
 
-  // Lade 10 Services mit hoher Basis-Relevanz aus dem Cache
-  const { data: highRelevanceServices, isLoading: isLoadingServices } = useQuery({
-    queryKey: ["landing-high-relevance"],
+  // Lade Service-Inventar von GitHub
+  const { data: services, isLoading: isLoadingInventory } = useServiceInventory();
+
+  // Lade Services mit hoher Basis-Relevanz aus dem Cache
+  const { data: highRelevanceIds, isLoading: isLoadingRelevance } = useQuery({
+    queryKey: ["landing-high-relevance-ids"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_relevance_cache")
-        .select("service_technical_id, reason")
+        .select("service_technical_id")
         .eq("relevance", "hoch")
         .limit(10);
       
       if (error) throw error;
-      return data || [];
+      return new Set((data || []).map(d => d.service_technical_id));
     },
-    staleTime: 1000 * 60 * 5, // 5 Minuten
+    staleTime: 1000 * 60 * 5,
   });
+
+  // Filtere Services mit hoher Relevanz
+  const highRelevanceServices = useMemo(() => {
+    if (!services || !highRelevanceIds) return [];
+    return services
+      .filter(s => highRelevanceIds.has(s.technicalId))
+      .slice(0, 10);
+  }, [services, highRelevanceIds]);
+
+  const isLoading = isLoadingInventory || isLoadingRelevance;
+
+  // Redirect to auth when selecting service
+  const handleServiceSelect = (service: ServiceInventoryItem) => {
+    setSelectedService(prev => prev?.technicalId === service.technicalId ? null : service);
+  };
+
+  // Redirect to auth for analysis
+  const handleProceedToAnalysis = () => {
+    navigate("/auth");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -222,7 +251,7 @@ const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 max-w-7xl mx-auto">
-            {isLoadingServices ? (
+            {isLoading ? (
               Array.from({ length: 10 }).map((_, i) => (
                 <Card key={i} className="border-border/50">
                   <CardHeader className="pb-3">
@@ -239,35 +268,15 @@ const Landing = () => {
                   </CardContent>
                 </Card>
               ))
-            ) : highRelevanceServices && highRelevanceServices.length > 0 ? (
+            ) : highRelevanceServices.length > 0 ? (
               highRelevanceServices.map((service) => (
-                <Card 
-                  key={service.service_technical_id} 
-                  className="border-border/50 hover:border-primary/50 transition-all card-hover"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between mb-2">
-                      <Badge variant="outline" className="text-xs">
-                        Service
-                      </Badge>
-                      <Badge className="text-[10px] px-1.5 py-0.5 gap-1 bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                        Hoch
-                      </Badge>
-                    </div>
-                    <CardTitle className="text-base leading-tight">
-                      {service.service_technical_id}
-                    </CardTitle>
-                    <CardDescription className="text-xs line-clamp-2">
-                      {service.reason}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <code className="bg-muted px-2 py-1 rounded text-[10px] text-muted-foreground">
-                      {service.service_technical_id}
-                    </code>
-                  </CardContent>
-                </Card>
+                <ServiceCard
+                  key={service.technicalId}
+                  service={service}
+                  isSelected={selectedService?.technicalId === service.technicalId}
+                  onSelect={handleServiceSelect}
+                  onProceedToAnalysis={handleProceedToAnalysis}
+                />
               ))
             ) : (
               <div className="col-span-full text-center text-muted-foreground py-8">
