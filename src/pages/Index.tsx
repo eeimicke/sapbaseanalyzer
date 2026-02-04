@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ const classificationIcons: Record<string, typeof FileCode> = {
 };
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
@@ -293,7 +295,10 @@ const Index = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => signOut()}
+                    onClick={async () => {
+                      await signOut();
+                      navigate('/');
+                    }}
                     className="h-8 px-2 text-muted-foreground hover:text-foreground"
                   >
                     <LogOut className="w-4 h-4" />
