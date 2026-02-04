@@ -66,7 +66,8 @@ export const perplexityApi = {
     serviceDescription: string,
     serviceDetails: ServiceDetails,
     basePrompt: string,
-    fileName?: string
+    fileName?: string,
+    language: 'en' | 'de' = 'en'
   ): Promise<AnalysisResponse> {
     // Build GitHub repository URL for the service metadata
     const githubRepoUrl = fileName 
@@ -110,6 +111,7 @@ export const perplexityApi = {
         githubRepoUrl,
         category: 'full-basis',
         basePrompt,
+        language,
       },
     });
 

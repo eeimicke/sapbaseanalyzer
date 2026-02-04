@@ -74,6 +74,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
               serviceDescription: service.description || '',
               serviceLinks,
               category: 'quick-summary',
+              language,
             },
           });
 
