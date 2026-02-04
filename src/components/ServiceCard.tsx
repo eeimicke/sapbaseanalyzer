@@ -168,8 +168,8 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
               <div className="h-5 w-16 bg-muted animate-pulse rounded" />
             </div>
           ) : classifications.length > 0 ? (
-            <div className="flex gap-1 flex-wrap">
-              {classifications.slice(0, 4).map((classification) => {
+          <div className="flex gap-1 flex-wrap">
+              {classifications.map((classification) => {
                 const Icon = classificationIcons[classification] || Link2;
                 const count = groupedLinks[classification]?.length || 0;
                 return (
@@ -183,11 +183,6 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                   </Badge>
                 );
               })}
-              {classifications.length > 4 && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  +{classifications.length - 4}
-                </Badge>
-              )}
             </div>
           ) : null
         )}
