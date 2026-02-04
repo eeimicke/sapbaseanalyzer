@@ -38,7 +38,8 @@ import {
   Settings,
   Save,
   LogOut,
-  User
+  User,
+  Linkedin
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
 import { 
@@ -981,8 +982,17 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t border-border/50 bg-muted/30 py-4">
         <div className="container mx-auto px-6 text-center">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
             Created by Ernst Eimicke
+            <span className="text-border">•</span>
+            <a
+              href="https://www.linkedin.com/in/eeimicke"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
+            >
+              <Linkedin className="w-4 h-4" />
+            </a>
           </p>
         </div>
       </footer>
