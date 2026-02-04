@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Check, Github, ExternalLink, BookOpen, Database, FileCode, Shield, Globe, Link2, Loader2, Sparkles, ChevronRight } from "lucide-react";
 import { type ServiceInventoryItem, type ServiceDetails } from "@/lib/sap-services";
 import { useServiceDetails } from "@/hooks/use-sap-services";
+import { useServiceRelevance } from "@/hooks/use-service-relevance";
+import { RelevanceBadge } from "@/components/RelevanceBadge";
 import { supabase } from "@/integrations/supabase/client";
 
 // Icon-Mapping für Link-Classifications
@@ -28,6 +30,7 @@ interface ServiceCardProps {
 
 export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis }: ServiceCardProps) {
   const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.fileName);
+  const { data: relevance, isLoading: isLoadingRelevance } = useServiceRelevance(service);
   const [quickSummary, setQuickSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -109,9 +112,16 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between mb-2">
-          <Badge variant="outline" className="text-xs">
-            {service.category || "Service"}
-          </Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-xs">
+              {service.category || "Service"}
+            </Badge>
+            <RelevanceBadge 
+              relevance={relevance?.relevance} 
+              reason={relevance?.reason}
+              isLoading={isLoadingRelevance}
+            />
+          </div>
           <div className="flex items-center gap-2">
             <a
               href={githubUrl}

@@ -44,6 +44,7 @@ import {
   Linkedin
 } from "lucide-react";
 import { useServiceInventory, useServiceDetails } from "@/hooks/use-sap-services";
+import { useBatchRelevance, type RelevanceLevel, relevanceColors, relevanceLabels } from "@/hooks/use-service-relevance";
 import { 
   filterServices, 
   extractCategories, 
@@ -83,6 +84,7 @@ const Index = () => {
   const [selectedServiceDetails, setSelectedServiceDetails] = useState<ServiceDetails | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedRelevance, setSelectedRelevance] = useState<RelevanceLevel | "all">("all");
   const { isDark, toggleTheme } = useTheme();
 
   // Prompt State
@@ -144,10 +146,40 @@ const Index = () => {
   }, [activeServiceDetails]);
 
   // Gefilterte Services basierend auf Suche und Kategorie
-  const filteredServices = useMemo(() => {
+  const categoryFilteredServices = useMemo(() => {
     if (!services) return [];
     return filterServices(services, searchQuery, selectedCategory);
   }, [services, searchQuery, selectedCategory]);
+
+  // Batch-Relevanz für sichtbare Services laden
+  const { data: relevanceMap, isLoading: isLoadingRelevance } = useBatchRelevance(
+    categoryFilteredServices.slice(0, 50), // Limit to first 50 for performance
+    categoryFilteredServices.length > 0
+  );
+
+  // Weitere Filterung nach Relevanz
+  const filteredServices = useMemo(() => {
+    if (selectedRelevance === "all" || !relevanceMap) {
+      return categoryFilteredServices;
+    }
+    return categoryFilteredServices.filter((service) => {
+      const rel = relevanceMap.get(service.technicalId);
+      return rel?.relevance === selectedRelevance;
+    });
+  }, [categoryFilteredServices, selectedRelevance, relevanceMap]);
+
+  // Relevanz-Counts berechnen
+  const relevanceCounts = useMemo(() => {
+    if (!relevanceMap) return { all: categoryFilteredServices.length, hoch: 0, mittel: 0, niedrig: 0 };
+    const counts = { all: categoryFilteredServices.length, hoch: 0, mittel: 0, niedrig: 0 };
+    categoryFilteredServices.forEach((service) => {
+      const rel = relevanceMap.get(service.technicalId);
+      if (rel?.relevance) {
+        counts[rel.relevance]++;
+      }
+    });
+    return counts;
+  }, [categoryFilteredServices, relevanceMap]);
 
   // Verfügbare Kategorien aus den Daten extrahieren
   const availableCategories = useMemo(() => {
@@ -402,6 +434,61 @@ const Index = () => {
                     ))}
                   </TabsList>
                 </Tabs>
+              )}
+
+              {/* Relevanz-Filter */}
+              {!isLoadingServices && !isServicesError && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground font-medium">Basis-Relevanz:</span>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setSelectedRelevance("all")}
+                      className={`text-xs px-3 py-1.5 rounded-lg transition-all ${
+                        selectedRelevance === "all"
+                          ? "bg-primary text-primary-foreground font-medium"
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Alle ({relevanceCounts.all})
+                    </button>
+                    <button
+                      onClick={() => setSelectedRelevance("hoch")}
+                      className={`text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                        selectedRelevance === "hoch"
+                          ? `${relevanceColors.hoch.bg} ${relevanceColors.hoch.text} font-medium`
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${relevanceColors.hoch.dot}`} />
+                      Hoch ({relevanceCounts.hoch})
+                    </button>
+                    <button
+                      onClick={() => setSelectedRelevance("mittel")}
+                      className={`text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                        selectedRelevance === "mittel"
+                          ? `${relevanceColors.mittel.bg} ${relevanceColors.mittel.text} font-medium`
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${relevanceColors.mittel.dot}`} />
+                      Mittel ({relevanceCounts.mittel})
+                    </button>
+                    <button
+                      onClick={() => setSelectedRelevance("niedrig")}
+                      className={`text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
+                        selectedRelevance === "niedrig"
+                          ? `${relevanceColors.niedrig.bg} ${relevanceColors.niedrig.text} font-medium`
+                          : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${relevanceColors.niedrig.dot}`} />
+                      Niedrig ({relevanceCounts.niedrig})
+                    </button>
+                  </div>
+                  {isLoadingRelevance && (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
               )}
             </div>
 
