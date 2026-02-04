@@ -78,23 +78,23 @@ const Landing = () => {
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl nagarro-gradient flex items-center justify-center nagarro-glow">
-                <Sparkles className="w-5 h-5 text-background" />
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl nagarro-gradient flex items-center justify-center nagarro-glow flex-shrink-0">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
               </div>
-              <div>
-                <h1 className="text-xl font-semibold tracking-tight">SAP Basis Analyzer</h1>
-                <p className="text-xs text-muted-foreground">by Ernst Eimicke</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-semibold tracking-tight truncate">SAP Basis Analyzer</h1>
+                <p className="text-xs text-muted-foreground hidden sm:block">by Ernst Eimicke</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
-                className="rounded-lg"
+                className="rounded-lg h-8 w-8 sm:h-9 sm:w-9"
               >
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
@@ -105,20 +105,21 @@ const Landing = () => {
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
               >
                 <Linkedin className="w-4 h-4" />
-                <span className="hidden sm:inline">LinkedIn</span>
+                <span className="hidden md:inline">LinkedIn</span>
               </a>
-              <Badge variant="outline" className="text-xs px-3 py-1 border-primary/30 text-primary hidden sm:flex">
+              <Badge variant="outline" className="text-xs px-2 sm:px-3 py-1 border-primary/30 text-primary hidden lg:flex">
                 <Github className="w-3 h-3 mr-1" />
                 Open Source Data
               </Badge>
-              <Link to="/auth">
-                <Button variant="outline" size="sm">
+              <Link to="/auth" className="hidden sm:block">
+                <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
                   Anmelden
                 </Button>
               </Link>
               <Link to="/auth">
-                <Button size="sm" className="nagarro-gradient text-background nagarro-glow">
-                  Kostenlos starten
+                <Button size="sm" className="nagarro-gradient text-background nagarro-glow h-8 text-xs sm:text-sm px-2 sm:px-4">
+                  <span className="hidden sm:inline">Kostenlos starten</span>
+                  <span className="sm:hidden">Start</span>
                 </Button>
               </Link>
             </div>
