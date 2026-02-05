@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSEO } from "@/hooks/useSEO";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -82,6 +83,16 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRelevance, setSelectedRelevance] = useState<RelevanceLevel | "all">("all");
   const { isDark, toggleTheme } = useTheme();
+
+  // SEO Meta Tags
+  useSEO({
+    title: "Dashboard - Analyze SAP BTP Services",
+    description: "Analyze SAP BTP services with AI, generate documentation, and export to Confluence. Secure, private, and GDPR compliant.",
+    ogTitle: "SAP BTP Basis Analyzer - Dashboard",
+    ogDescription: "AI-powered analysis and documentation for SAP BTP services.",
+    canonical: "https://sapbaseanalyzer.lovable.app/app",
+    noindex: false,
+  });
 
   // Steps with translations
   const steps = [
