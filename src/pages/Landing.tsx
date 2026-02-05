@@ -576,14 +576,15 @@ const Landing = () => {
                 {!isLoadingServices && !isServicesError && filteredServices.map((service) => {
                   const rel = relevanceMap?.get(service.technicalId) ?? null;
                   return (
-                    <ServiceCard
-                      key={service.technicalId}
-                      service={service}
-                      isSelected={selectedService?.technicalId === service.technicalId}
-                      onSelect={setSelectedService}
-                      onProceedToAnalysis={handleProceedToAnalysis}
-                      preloadedRelevance={rel ? { relevance: rel.relevance, reason: rel.reason } : null}
-                    />
+                    <div key={service.technicalId} className="service-card-item">
+                      <ServiceCard
+                        service={service}
+                        isSelected={selectedService?.technicalId === service.technicalId}
+                        onSelect={setSelectedService}
+                        onProceedToAnalysis={handleProceedToAnalysis}
+                        preloadedRelevance={rel ? { relevance: rel.relevance, reason: rel.reason } : null}
+                      />
+                    </div>
                   );
                 })}
 
