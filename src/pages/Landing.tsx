@@ -321,7 +321,8 @@ const Landing = () => {
       <header className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+            {/* Left: Logo & Title */}
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
               <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl nagarro-gradient flex items-center justify-center nagarro-glow flex-shrink-0">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-background" />
               </div>
@@ -330,11 +331,14 @@ const Landing = () => {
                 <p className="text-xs text-muted-foreground hidden sm:block">{t("header.subtitle")}</p>
               </div>
             </div>
-            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-              {/* Guest Usage Banner */}
-              <div className="hidden md:block">
-                <GuestUsageBanner />
-              </div>
+            
+            {/* Center: Guest Usage Banner */}
+            <div className="hidden md:flex flex-1 justify-center">
+              <GuestUsageBanner />
+            </div>
+            
+            {/* Right: Actions */}
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 flex-1 justify-end">
               <LanguageToggle />
               <Button
                 variant="ghost"
