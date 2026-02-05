@@ -260,7 +260,6 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                 className="w-full mt-3 gap-2 nagarro-gradient text-background nagarro-glow"
                 size="sm"
               >
-                <Sparkles className="w-4 h-4" />
                 {t("serviceCard.proceedToAnalysis")}
                 <ChevronRight className="w-4 h-4" />
               </Button>
