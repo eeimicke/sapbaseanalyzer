@@ -115,7 +115,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
 
   return (
     <Card
-      className={`cursor-pointer transition-all hover:border-primary/50 ${
+      className={`cursor-pointer transition-all hover:border-primary/50 h-full flex flex-col ${
         isSelected
           ? "border-primary ring-2 ring-primary/20"
           : "border-border/50"
@@ -158,7 +158,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
           {service.description || noDescriptionText}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0 space-y-3">
+      <CardContent className="pt-0 space-y-3 flex-1 flex flex-col">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <code className="bg-muted px-2 py-1 rounded text-[10px]">{service.technicalId}</code>
         </div>

@@ -576,7 +576,7 @@ const Landing = () => {
                 {!isLoadingServices && !isServicesError && filteredServices.map((service) => {
                   const rel = relevanceMap?.get(service.technicalId) ?? null;
                   return (
-                    <div key={service.technicalId} className="service-card-item">
+                    <div key={service.technicalId} className="service-card-item h-full">
                       <ServiceCard
                         service={service}
                         isSelected={selectedService?.technicalId === service.technicalId}
