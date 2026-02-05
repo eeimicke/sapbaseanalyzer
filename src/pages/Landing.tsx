@@ -1049,6 +1049,23 @@ const Landing = () => {
           </div>
         </main>
       )}
+
+      {/* Footer */}
+      <footer className="py-6 border-t border-border/30 bg-muted/20">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Built proudly with{" "}
+            <a 
+              href="https://lovable.dev" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium"
+            >
+              Lovable
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
