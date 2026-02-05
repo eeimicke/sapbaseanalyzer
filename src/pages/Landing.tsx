@@ -422,23 +422,28 @@ const Landing = () => {
                 <p className="text-muted-foreground max-w-2xl mx-auto text-sm mb-4">
                   {t("app.selectServiceDescription")}
                 </p>
-                <a
-                  href="https://github.com/SAP-samples/btp-service-metadata/tree/main/v1"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors cursor-pointer"
-                >
-                  <Database className="w-4 h-4" />
-                  <span>
-                    {isLoadingServices 
-                      ? t("app.loadingServices")
-                      : isServicesError 
-                      ? t("app.loadError")
-                      : `${services?.length || 0} ${t("app.servicesFromGithub")}`
-                    }
-                  </span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                <div className="flex flex-col items-center gap-2">
+                  <a
+                    href="https://github.com/SAP-samples/btp-service-metadata/tree/main/v1"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary text-sm hover:bg-primary/20 transition-colors cursor-pointer"
+                  >
+                    <Database className="w-4 h-4" />
+                    <span>
+                      {isLoadingServices 
+                        ? t("app.loadingServices")
+                        : isServicesError 
+                        ? t("app.loadError")
+                        : `${services?.length || 0} ${t("app.servicesFromGithub")}`
+                      }
+                    </span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <code className="text-[10px] text-muted-foreground/60 bg-muted/30 px-2 py-1 rounded font-mono select-all">
+                    https://raw.githubusercontent.com/SAP-samples/btp-service-metadata/main/v1/inventory.json
+                  </code>
+                </div>
               </div>
 
               {/* Search and Filter */}
