@@ -503,7 +503,7 @@ const Landing = () => {
 
                 {/* Relevance Filter */}
                 {!isLoadingServices && !isServicesError && (
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
                     <span className="text-xs text-muted-foreground font-medium">{t("app.basisRelevance")}</span>
                     <div className="flex gap-1.5 flex-wrap">
                       <button
