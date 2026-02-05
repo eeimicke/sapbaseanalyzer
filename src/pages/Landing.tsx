@@ -134,7 +134,7 @@ const Landing = () => {
     description: "Analyze 589+ SAP BTP services with AI support. Generate structured documentation in minutes. Free registration, GDPR compliant.",
     ogTitle: "SAP BTP Service Analyzer",
     ogDescription: "Analyze 589+ SAP BTP services with AI. Create structured documentation instantly.",
-    canonical: "https://sapbaseanalyzer.lovable.app/",
+    canonical: "https://sapbtpanalyzer.notyourernst.work/",
   });
 
   // Features with translations
