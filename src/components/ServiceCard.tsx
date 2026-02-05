@@ -257,7 +257,7 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                   e.stopPropagation();
                   onProceedToAnalysis(service, serviceDetails);
                 }}
-                className="w-full mt-3 gap-2 nagarro-gradient text-background nagarro-glow"
+                className="mt-3 gap-2 nagarro-gradient text-background nagarro-glow"
                 size="sm"
               >
                 <Sparkles className="w-4 h-4" />
