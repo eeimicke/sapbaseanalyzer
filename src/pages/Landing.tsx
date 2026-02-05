@@ -130,9 +130,9 @@ const Landing = () => {
 
   // SEO Meta Tags
   useSEO({
-    title: "SAP BTP Basis Analyzer - AI Documentation Tool",
-    description: "Analyze 589+ SAP BTP services with AI support. Generate structured base documentation in minutes. Free registration, GDPR compliant.",
-    ogTitle: "SAP BTP Basis Analyzer",
+    title: "SAP BTP Service Analyzer - AI Documentation Tool",
+    description: "Analyze 589+ SAP BTP services with AI support. Generate structured documentation in minutes. Free registration, GDPR compliant.",
+    ogTitle: "SAP BTP Service Analyzer",
     ogDescription: "Analyze 589+ SAP BTP services with AI. Create structured documentation instantly.",
     canonical: "https://sapbaseanalyzer.lovable.app/",
   });

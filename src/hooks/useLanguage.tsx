@@ -12,7 +12,7 @@ interface LanguageContextType {
 const translations = {
   en: {
     // Header
-    "header.title": "SAP BTP Basis Analyzer",
+    "header.title": "SAP BTP Service Analyzer",
     "header.subtitle": "by Ernst Eimicke",
     "header.login": "Sign In",
     "header.start": "Get Started Free",
@@ -82,7 +82,7 @@ const translations = {
     "cta.gdpr": "GDPR compliant",
     
     // Footer
-    "footer.poweredBy": "SAP BTP Basis Analyzer • Powered by Perplexity AI",
+    "footer.poweredBy": "SAP BTP Service Analyzer • Powered by Perplexity AI",
     "footer.createdBy": "Created by Ernst Eimicke",
     
     // Auth Page
@@ -218,7 +218,7 @@ const translations = {
   },
   de: {
     // Header
-    "header.title": "SAP BTP Basis Analyzer",
+    "header.title": "SAP BTP Service Analyzer",
     "header.subtitle": "by Ernst Eimicke",
     "header.login": "Anmelden",
     "header.start": "Kostenlos starten",
@@ -288,7 +288,7 @@ const translations = {
     "cta.gdpr": "DSGVO-konform",
     
     // Footer
-    "footer.poweredBy": "SAP BTP Basis Analyzer • Powered by Perplexity AI",
+    "footer.poweredBy": "SAP BTP Service Analyzer • Powered by Perplexity AI",
     "footer.createdBy": "Created by Ernst Eimicke",
     
     // Auth Page
