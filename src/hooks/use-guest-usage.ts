@@ -1,7 +1,7 @@
 // Hook for tracking guest analysis usage in localStorage
 
 const STORAGE_KEY = "sap-basis-analyzer-guest-analyses";
-const GUEST_LIMIT = 2;
+const GUEST_LIMIT = 5;
 
 interface GuestUsageData {
   count: number;
