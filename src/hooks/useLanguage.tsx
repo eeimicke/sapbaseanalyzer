@@ -385,7 +385,7 @@ const translations = {
     "app.model": "Modell",
     
     // Service Card
-    "serviceCard.proceedToAnalysis": "An Basis-Analyse übergeben",
+    "serviceCard.proceedToAnalysis": "Basis Analyse starten",
     "serviceCard.viewOnGithub": "Auf GitHub ansehen",
     
     // Relevance Badge
