@@ -561,7 +561,7 @@ const Landing = () => {
                   </>
                 )}
 
-                {!isLoadingServices && !isServicesError && filteredServices.slice(0, 12).map((service) => (
+                {!isLoadingServices && !isServicesError && filteredServices.map((service) => (
                   <ServiceCard
                     key={service.technicalId}
                     service={service}
@@ -581,21 +581,6 @@ const Landing = () => {
                   </div>
                 )}
               </div>
-
-              {/* Show more hint */}
-              {!isLoadingServices && filteredServices.length > 12 && (
-                <div className="text-center mt-6">
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {filteredServices.length - 12} {t("app.more")} services available
-                  </p>
-                  <Link to="/auth">
-                    <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
-                      {t("relevance.viewAll")}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              )}
             </div>
           </section>
 
