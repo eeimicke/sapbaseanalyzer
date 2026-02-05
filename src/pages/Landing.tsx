@@ -177,7 +177,7 @@ const Landing = () => {
   }, [services, searchQuery, selectedCategory]);
 
   // Batch relevance
-  const { data: relevanceMap, isLoading: isLoadingRelevance } = useBatchRelevance(
+  const { data: relevanceMap, isLoading: isLoadingRelevance, reloadAll: reloadRelevance, isFetching: isRefetchingRelevance } = useBatchRelevance(
     categoryFilteredServices,
     categoryFilteredServices.length > 0
   );
@@ -525,9 +525,19 @@ const Landing = () => {
                         {t("app.low")} ({relevanceCounts.niedrig})
                       </button>
                     </div>
-                    {isLoadingRelevance && (
+                    {(isLoadingRelevance || isRefetchingRelevance) && (
                       <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => reloadRelevance()}
+                      disabled={isLoadingRelevance || isRefetchingRelevance}
+                      className="h-8 px-2 text-xs text-muted-foreground hover:text-primary"
+                      title={language === "de" ? "Relevanz neu laden" : "Reload relevance"}
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRefetchingRelevance ? "animate-spin" : ""}`} />
+                    </Button>
                   </div>
                 )}
               </div>
