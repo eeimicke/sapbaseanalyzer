@@ -893,6 +893,7 @@ ${language === "de" ? "Bitte analysiere diesen Service gemäß der Struktur im S
                   setAnalysisProgress(0);
                   setAnalysisComplete(false);
                   setCurrentStep(1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="gap-2"
                 disabled={isAnalyzing}
@@ -1126,6 +1127,7 @@ ${language === "de" ? "Bitte analysiere diesen Service gemäß der Struktur im S
                   setSelectedService(null);
                   setSelectedServiceDetails(null);
                   setCurrentStep(1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 variant="outline"
                 className="gap-2"
