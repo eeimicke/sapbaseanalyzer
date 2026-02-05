@@ -203,6 +203,18 @@ const translations = {
     "relevanceBadge.basisRelevance": "Basis Relevance",
     "relevanceBadge.reclassify": "Reclassify",
     "relevanceBadge.reclassifying": "Reclassifying...",
+    
+    // Guest Usage
+    "guest.usageCounter": "{{count}} of {{limit}} free analyses used",
+    "guest.limitReached": "Free analyses used up",
+    "guest.limitDescription": "You have used your 2 free analyses. Register for free to continue using all features without limits.",
+    "guest.registerNow": "Register Now",
+    "guest.maybeLater": "Maybe Later",
+    "guest.benefit1": "Unlimited AI analyses",
+    "guest.benefit2": "Export to Confluence & Markdown",
+    "guest.benefit3": "Save and manage your analyses",
+    "guest.tryFree": "Try 2 Free Analyses",
+    "guest.analysisCountdown": "{{remaining}} free analyses remaining",
   },
   de: {
     // Header
@@ -397,6 +409,18 @@ const translations = {
     "relevanceBadge.basisRelevance": "Basis-Relevanz",
     "relevanceBadge.reclassify": "Neu klassifizieren",
     "relevanceBadge.reclassifying": "Klassifiziert neu...",
+    
+    // Guest Usage
+    "guest.usageCounter": "{{count}} von {{limit}} kostenlosen Analysen verwendet",
+    "guest.limitReached": "Kostenlose Analysen aufgebraucht",
+    "guest.limitDescription": "Sie haben Ihre 2 kostenlosen Analysen verwendet. Registrieren Sie sich kostenlos, um alle Funktionen ohne Limits zu nutzen.",
+    "guest.registerNow": "Jetzt registrieren",
+    "guest.maybeLater": "Vielleicht später",
+    "guest.benefit1": "Unbegrenzte KI-Analysen",
+    "guest.benefit2": "Export nach Confluence & Markdown",
+    "guest.benefit3": "Analysen speichern und verwalten",
+    "guest.tryFree": "2 kostenlose Analysen testen",
+    "guest.analysisCountdown": "{{remaining}} kostenlose Analysen übrig",
   },
 };
 
