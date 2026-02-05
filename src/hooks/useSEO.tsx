@@ -32,7 +32,7 @@ export const useSEO = (props: SEOProps) => {
 
   return (
     <Helmet>
-      {title && <title>{title} | SAP BTP Basis Analyzer</title>}
+      {title && <title>{title} | SAP BTP Service Analyzer</title>}
       {description && <meta name="description" content={description} />}
       {noindex && <meta name="robots" content="noindex, nofollow" />}
 
