@@ -391,6 +391,9 @@ const Landing = () => {
                 <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
                   {t("hero.description")}
                 </p>
+                <p className="text-base md:text-lg text-primary font-medium max-w-2xl mx-auto">
+                  Analysiere SAP BTP Services mit KI und erstelle strukturierte Basis-Dokumentation für dein Team.
+                </p>
                 
                 {/* Guest Usage Info */}
                 <div className="flex items-center justify-center gap-3">
