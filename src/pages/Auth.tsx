@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSEO } from '@/hooks/useSEO';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +18,16 @@ const Auth = () => {
   const { signIn, signUp, user } = useAuth();
   const { t } = useLanguage();
   const { toast } = useToast();
+
+  // SEO Meta Tags
+  useSEO({
+    title: "Sign In / Sign Up",
+    description: "Create your free account to analyze SAP BTP services with AI. Instant access, no credit card required.",
+    ogTitle: "SAP BTP Basis Analyzer - Sign In",
+    ogDescription: "Free registration for SAP BTP service analysis and documentation.",
+    canonical: "https://sapbaseanalyzer.lovable.app/auth",
+    noindex: false,
+  });
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

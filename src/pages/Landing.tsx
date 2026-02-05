@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useSEO } from "@/hooks/useSEO";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +33,18 @@ import {
 
 const Landing = () => {
   const { isDark, toggleTheme } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [selectedService, setSelectedService] = useState<ServiceInventoryItem | null>(null);
+
+  // SEO Meta Tags
+  useSEO({
+    title: "SAP BTP Basis Analyzer - AI Documentation Tool",
+    description: "Analyze 589+ SAP BTP services with AI support. Generate structured base documentation in minutes. Free registration, GDPR compliant.",
+    ogTitle: "SAP BTP Basis Analyzer",
+    ogDescription: "Analyze 589+ SAP BTP services with AI. Create structured documentation instantly.",
+    canonical: "https://sapbaseanalyzer.lovable.app/",
+  });
 
   // Features with translations
   const features = [
