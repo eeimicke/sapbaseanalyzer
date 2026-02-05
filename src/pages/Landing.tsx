@@ -31,6 +31,15 @@ import {
   type ServiceDetails
 } from "@/lib/sap-services";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Sparkles,
   Database,
   Bot,
@@ -119,6 +128,8 @@ const Landing = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedRelevance, setSelectedRelevance] = useState<RelevanceLevel | "all">("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 24;
 
   // Analysis States
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -197,6 +208,18 @@ const Landing = () => {
       return rel?.relevance === selectedRelevance;
     });
   }, [categoryFilteredServices, selectedRelevance, relevanceMap]);
+
+  // Pagination
+  const totalPages = Math.ceil(filteredServices.length / ITEMS_PER_PAGE);
+  const paginatedServices = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredServices.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredServices, currentPage, ITEMS_PER_PAGE]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedRelevance]);
 
   // Relevance counts
   const relevanceCounts = useMemo(() => {
@@ -563,6 +586,22 @@ const Landing = () => {
                 </div>
               )}
 
+              {/* Services Count & Pagination Info */}
+              {!isLoadingServices && !isServicesError && filteredServices.length > 0 && (
+                <div className="flex items-center justify-between max-w-6xl mx-auto mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    {language === "de"
+                      ? `Zeige ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredServices.length)} von ${filteredServices.length} Services`
+                      : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredServices.length)} of ${filteredServices.length} services`}
+                  </p>
+                  {totalPages > 1 && (
+                    <p className="text-sm text-muted-foreground">
+                      {language === "de" ? `Seite ${currentPage} von ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Services Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
                 {isLoadingServices && (
@@ -573,7 +612,7 @@ const Landing = () => {
                   </>
                 )}
 
-                {!isLoadingServices && !isServicesError && filteredServices.map((service) => {
+                {!isLoadingServices && !isServicesError && paginatedServices.map((service) => {
                   const rel = relevanceMap?.get(service.technicalId) ?? null;
                   return (
                     <div key={service.technicalId} className="service-card-item h-full">
@@ -598,6 +637,70 @@ const Landing = () => {
                   </div>
                 )}
               </div>
+
+              {/* Pagination Controls */}
+              {!isLoadingServices && !isServicesError && totalPages > 1 && (
+                <div className="mt-8 max-w-6xl mx-auto">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => {
+                            setCurrentPage((p) => Math.max(1, p - 1));
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+
+                      {(() => {
+                        const pages: (number | "ellipsis")[] = [];
+                        if (totalPages <= 7) {
+                          for (let i = 1; i <= totalPages; i++) pages.push(i);
+                        } else {
+                          pages.push(1);
+                          if (currentPage > 3) pages.push("ellipsis");
+                          const start = Math.max(2, currentPage - 1);
+                          const end = Math.min(totalPages - 1, currentPage + 1);
+                          for (let i = start; i <= end; i++) pages.push(i);
+                          if (currentPage < totalPages - 2) pages.push("ellipsis");
+                          pages.push(totalPages);
+                        }
+                        return pages.map((page, idx) =>
+                          page === "ellipsis" ? (
+                            <PaginationItem key={`ellipsis-${idx}`}>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                          ) : (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                isActive={currentPage === page}
+                                onClick={() => {
+                                  setCurrentPage(page);
+                                  window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        );
+                      })()}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => {
+                            setCurrentPage((p) => Math.min(totalPages, p + 1));
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
             </div>
           </section>
 
