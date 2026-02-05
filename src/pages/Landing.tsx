@@ -550,9 +550,6 @@ const Landing = () => {
                         {t("app.low")} ({relevanceCounts.niedrig})
                       </button>
                     </div>
-                    {isRefetchingRelevance && (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"
