@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/hooks/useTheme";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -53,6 +54,8 @@ import {
   AlertCircle,
   RefreshCw,
   Link2,
+  Code,
+  FileCode,
 } from "lucide-react";
 
 // Default prompt for guests (no DB access due to RLS)
@@ -122,6 +125,8 @@ const Landing = () => {
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [fullBasisResult, setFullBasisResult] = useState<AnalysisResponse | null>(null);
+  const [showSystemPrompt, setShowSystemPrompt] = useState(false);
+  const [showServiceContext, setShowServiceContext] = useState(false);
 
   // SEO Meta Tags
   useSEO({
@@ -703,6 +708,79 @@ const Landing = () => {
                 </div>
               </div>
             )}
+
+            {/* Prompts Display */}
+            <div className="space-y-3">
+              {/* System Prompt (Basis Prompt) */}
+              <Collapsible open={showSystemPrompt} onOpenChange={setShowSystemPrompt}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <Code className="w-4 h-4 text-primary" />
+                      <span>{language === "de" ? "System-Prompt (Basis-Prompt)" : "System Prompt (Basis Prompt)"}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showSystemPrompt ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="p-4">
+                      <ScrollArea className="h-[300px]">
+                        <pre className="text-xs whitespace-pre-wrap font-mono text-muted-foreground">
+                          {DEFAULT_GUEST_PROMPT}
+                        </pre>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Service Context (User Message) */}
+              <Collapsible open={showServiceContext} onOpenChange={setShowServiceContext}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <FileCode className="w-4 h-4 text-primary" />
+                      <span>{language === "de" ? "Service-Kontext (User Message)" : "Service Context (User Message)"}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${showServiceContext ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2">
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="p-4">
+                      <ScrollArea className="h-[300px]">
+                        <pre className="text-xs whitespace-pre-wrap font-mono text-muted-foreground">
+{activeServiceDetails ? `# SAP BTP Service: ${selectedService?.displayName}
+
+## ${language === "de" ? "Beschreibung" : "Description"}
+${selectedService?.description || (language === "de" ? "Keine Beschreibung verfügbar." : "No description available.")}
+
+## ${language === "de" ? "Metadaten-Quelle" : "Metadata Source"}
+${language === "de" ? "Die Service-Metadaten stammen aus dem offiziellen SAP GitHub Repository:" : "The service metadata comes from the official SAP GitHub Repository:"}
+- [Service Metadata JSON](https://github.com/SAP-samples/btp-service-metadata/blob/main/v1/developer/${selectedService?.fileName})
+
+## ${language === "de" ? "Dokumentationslinks" : "Documentation Links"}
+${activeServiceDetails.links?.filter(l => l.value?.startsWith('http')).map(l => `- [${l.text || l.classification}](${l.value}) (${l.classification})`).join('\n') || (language === "de" ? "Keine Links verfügbar." : "No links available.")}
+
+## ${language === "de" ? "Service-Plans" : "Service Plans"}
+${activeServiceDetails.servicePlans?.map(p => `### ${p.displayName}${p.isFree ? (language === "de" ? " (kostenlos)" : " (free)") : ""}
+${p.description || ""}
+${language === "de" ? "Verfügbare Regionen:" : "Available regions:"} ${p.dataCenters?.map(dc => dc.displayName || dc.region || dc.name).filter(Boolean).join(', ') || '-'}`).join('\n\n') || '-'}
+
+## ${language === "de" ? "Support-Komponenten" : "Support Components"}
+${activeServiceDetails.supportComponents?.map(c => `- ${c.value} (${c.classification})`).join('\n') || '-'}
+
+---
+${language === "de" ? "Bitte analysiere diesen Service gemäß der Struktur im System-Prompt." : "Please analyze this service according to the structure in the system prompt."}` : (language === "de" ? "Warte auf Service-Details..." : "Waiting for service details...")}
+                        </pre>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+
 
             {/* Full-Basis Analysis Result */}
             <Card className={`border-border/50 transition-all ${fullBasisResult?.success ? 'border-primary/30' : ''}`}>
