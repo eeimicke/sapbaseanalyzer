@@ -130,7 +130,9 @@ async function fetchBatchRelevance(
  * Useful for filtering and progressive loading
  */
 export function useBatchRelevance(services: ServiceInventoryItem[], enabled = true) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: ["batch-relevance", services.map((s) => s.technicalId).sort().join(",")],
     queryFn: () => fetchBatchRelevance(services),
     enabled: enabled && services.length > 0,
@@ -138,6 +140,16 @@ export function useBatchRelevance(services: ServiceInventoryItem[], enabled = tr
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
     retry: 0, // Don't retry batch operations
   });
+
+  const reloadAll = async () => {
+    // Invalidate all relevance queries
+    await queryClient.invalidateQueries({ queryKey: ["batch-relevance"] });
+    await queryClient.invalidateQueries({ queryKey: ["service-relevance"] });
+    // Refetch
+    query.refetch();
+  };
+
+  return { ...query, reloadAll };
 }
 
 /**
