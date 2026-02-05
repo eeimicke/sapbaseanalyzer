@@ -386,14 +386,6 @@ const Landing = () => {
                   {t("hero.description")}
                 </p>
                 
-                {/* Guest Usage Info */}
-                <div className="flex items-center justify-center gap-3">
-                  <Badge variant="outline" className="text-sm px-4 py-2 border-primary/30 bg-primary/5">
-                    <Sparkles className="w-4 h-4 mr-2 text-primary" />
-                    {t("guest.tryFree")}
-                  </Badge>
-                </div>
-
                 {/* Stats */}
                 <div className="flex flex-wrap items-center justify-center gap-8 pt-6 border-t border-border/50 mt-8">
                   <div className="text-center">
