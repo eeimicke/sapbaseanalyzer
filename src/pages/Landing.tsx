@@ -344,15 +344,6 @@ const Landing = () => {
               >
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </Button>
-              <a
-                href="https://www.linkedin.com/in/eeimicke"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                <Linkedin className="w-4 h-4" />
-                <span className="hidden md:inline">LinkedIn</span>
-              </a>
               <Badge variant="outline" className="text-xs px-2 sm:px-3 py-1 border-primary/30 text-primary hidden lg:flex">
                 <Github className="w-3 h-3 mr-1" />
                 {t("header.openSource")}
