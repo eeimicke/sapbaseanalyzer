@@ -389,6 +389,11 @@ const Landing = () => {
                 <span className="hidden sm:inline">{language === "de" ? "Kontakt" : "Contact"}</span>
               </Button>
             </div>
+            
+            {/* Mobile: Guest Usage Banner */}
+            <div className="flex md:hidden justify-center pb-2">
+              <GuestUsageBanner />
+            </div>
           </div>
         </div>
       </header>
