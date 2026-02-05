@@ -22,7 +22,7 @@ import { GuestUsageBanner } from "@/components/GuestUsageBanner";
 import { useGuestUsage } from "@/hooks/use-guest-usage";
 import { useToast } from "@/hooks/use-toast";
 import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
-import { exportToConfluence, exportToMarkdown, copyToClipboard } from "@/lib/confluence-export";
+import { exportToMarkdown, copyToClipboard } from "@/lib/confluence-export";
 import { 
   filterServices, 
   extractCategories,

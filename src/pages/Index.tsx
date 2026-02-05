@@ -57,7 +57,7 @@ import {
 } from "@/lib/sap-services";
 import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
 import { ServiceCard } from "@/components/ServiceCard";
-import { exportToConfluence, exportToMarkdown, copyToClipboard } from "@/lib/confluence-export";
+import { exportToMarkdown, copyToClipboard } from "@/lib/confluence-export";
 
 // Icon-Mapping für Link-Classifications
 const classificationIcons: Record<string, typeof FileCode> = {
@@ -988,30 +988,7 @@ const Index = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full gap-2"
-                    disabled={!fullBasisResult?.data?.content}
-                    onClick={() => {
-                      if (fullBasisResult?.data?.content && selectedService) {
-                        exportToConfluence(
-                          fullBasisResult.data.content,
-                          selectedService.displayName,
-                          selectedService.category,
-                          fullBasisResult.data.citations,
-                          fullBasisResult.data.model
-                        );
-                        toast({
-                          title: t("app.exportSuccess"),
-                          description: t("app.confluenceDownloaded"),
-                        });
-                      }
-                    }}
-                  >
-                    <FileText className="w-4 h-4" />
-                    {t("app.confluenceXhtml")}
-                  </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Button 
                     variant="outline" 
                     className="w-full gap-2"
