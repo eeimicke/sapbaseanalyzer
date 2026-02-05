@@ -974,7 +974,7 @@ const Landing = () => {
               </Card>
             )}
 
-            {/* Export Actions - Prompt to register */}
+            {/* Export Actions */}
             <Card className="border-primary/20 bg-gradient-to-br from-card to-primary/5">
               <CardHeader>
                 <CardTitle className="flex items-center gap-3">
@@ -984,17 +984,35 @@ const Landing = () => {
                   {t("app.wikiExport")}
                 </CardTitle>
                 <CardDescription>
-                  {t("relevance.loginDescription")}
+                  {language === "de" 
+                    ? "Exportiere die Analyse als Markdown-Datei oder kopiere sie in die Zwischenablage."
+                    : "Export the analysis as a Markdown file or copy it to the clipboard."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Link to="/auth" className="flex-1">
-                    <Button className="w-full nagarro-gradient text-background nagarro-glow">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      {t("guest.registerNow")}
-                    </Button>
-                  </Link>
+                  <Button 
+                    onClick={() => {
+                      if (fullBasisResult?.data?.content && selectedService) {
+                        exportToMarkdown(
+                          fullBasisResult.data.content,
+                          selectedService.displayName,
+                          selectedService.category,
+                          fullBasisResult.data.citations,
+                          fullBasisResult.data.model
+                        );
+                        toast({
+                          title: language === "de" ? "Export erfolgreich" : "Export successful",
+                          description: language === "de" ? "Die Markdown-Datei wurde heruntergeladen." : "The Markdown file has been downloaded.",
+                        });
+                      }
+                    }}
+                    disabled={!fullBasisResult?.data?.content}
+                    className="flex-1 nagarro-gradient text-background nagarro-glow gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    {language === "de" ? "Als Markdown exportieren" : "Export as Markdown"}
+                  </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => {
