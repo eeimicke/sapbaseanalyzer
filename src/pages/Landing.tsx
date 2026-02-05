@@ -357,17 +357,14 @@ const Landing = () => {
                 <Github className="w-3 h-3 mr-1" />
                 {t("header.openSource")}
               </Badge>
-              <Link to="/auth" className="hidden sm:block">
-                <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
-                  {t("header.login")}
-                </Button>
-              </Link>
-              <Link to="/auth">
-                <Button size="sm" className="nagarro-gradient text-background nagarro-glow h-8 text-xs sm:text-sm px-2 sm:px-4">
-                  <span className="hidden sm:inline">{t("header.start")}</span>
-                  <span className="sm:hidden">{t("header.startShort")}</span>
-                </Button>
-              </Link>
+              <Button 
+                size="sm" 
+                className="bg-[#0A66C2] hover:bg-[#004182] text-white h-8 text-xs sm:text-sm px-2 sm:px-4"
+                onClick={() => setShowLimitDialog(true)}
+              >
+                <Linkedin className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">{language === "de" ? "Kontakt" : "Contact"}</span>
+              </Button>
             </div>
           </div>
         </div>
