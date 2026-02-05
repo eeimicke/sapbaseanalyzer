@@ -573,15 +573,19 @@ const Landing = () => {
                   </>
                 )}
 
-                {!isLoadingServices && !isServicesError && filteredServices.map((service) => (
-                  <ServiceCard
-                    key={service.technicalId}
-                    service={service}
-                    isSelected={selectedService?.technicalId === service.technicalId}
-                    onSelect={setSelectedService}
-                    onProceedToAnalysis={handleProceedToAnalysis}
-                  />
-                ))}
+                {!isLoadingServices && !isServicesError && filteredServices.map((service) => {
+                  const rel = relevanceMap?.get(service.technicalId) ?? null;
+                  return (
+                    <ServiceCard
+                      key={service.technicalId}
+                      service={service}
+                      isSelected={selectedService?.technicalId === service.technicalId}
+                      onSelect={setSelectedService}
+                      onProceedToAnalysis={handleProceedToAnalysis}
+                      preloadedRelevance={rel ? { relevance: rel.relevance, reason: rel.reason } : null}
+                    />
+                  );
+                })}
 
                 {!isLoadingServices && filteredServices.length === 0 && !isServicesError && (
                   <div className="col-span-full text-center py-12">

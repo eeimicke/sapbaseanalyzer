@@ -27,11 +27,13 @@ interface ServiceCardProps {
   isSelected: boolean;
   onSelect: (service: ServiceInventoryItem) => void;
   onProceedToAnalysis?: (service: ServiceInventoryItem, details: ServiceDetails) => void;
+  preloadedRelevance?: { relevance: "hoch" | "mittel" | "niedrig"; reason: string } | null;
 }
 
-export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis }: ServiceCardProps) {
+export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis, preloadedRelevance }: ServiceCardProps) {
   const { data: serviceDetails, isLoading: isLoadingDetails } = useServiceDetails(service.fileName);
-  const { data: relevance, isLoading: isLoadingRelevance, reclassify } = useServiceRelevance(service);
+  const { data: fetchedRelevance, isLoading: isLoadingRelevance, reclassify } = useServiceRelevance(service);
+  const relevance = preloadedRelevance ?? fetchedRelevance;
   const { t, language } = useLanguage();
   const [quickSummary, setQuickSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
