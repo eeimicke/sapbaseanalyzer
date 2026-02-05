@@ -137,9 +137,6 @@ const Landing = () => {
     { icon: Database, titleKey: "features.services.title", descriptionKey: "features.services.description" },
     { icon: Bot, titleKey: "features.ai.title", descriptionKey: "features.ai.description" },
     { icon: FileText, titleKey: "features.export.title", descriptionKey: "features.export.description" },
-    { icon: Zap, titleKey: "features.realtime.title", descriptionKey: "features.realtime.description" },
-    { icon: Shield, titleKey: "features.enterprise.title", descriptionKey: "features.enterprise.description" },
-    { icon: Globe, titleKey: "features.cloud.title", descriptionKey: "features.cloud.description" },
   ];
 
   const workflowSteps = [
