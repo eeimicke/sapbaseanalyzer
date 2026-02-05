@@ -1010,7 +1010,6 @@ const Landing = () => {
                     disabled={!fullBasisResult?.data?.content}
                     className="flex-1 nagarro-gradient text-background nagarro-glow gap-2"
                   >
-                    <FileText className="w-4 h-4" />
                     {language === "de" ? "Als Markdown exportieren" : "Export as Markdown"}
                   </Button>
                   <Button 
