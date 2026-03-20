@@ -1,149 +1,71 @@
 
-# Plan: Landing Page mit eingeschränkter Analyse-Funktion für Besucher
 
-## Übersicht
-Die Landing Page soll die vollständige Analyse-Funktionalität erhalten (wie nach dem Login), jedoch mit einer Einschränkung: Nicht angemeldete Besucher dürfen **maximal 2 Analysen** durchführen. Nach Erreichen dieses Limits wird eine Aufforderung zur Anmeldung angezeigt.
+## Login-System hinzufügen
 
-## Architektur-Analyse
+### Übersicht
+E-Mail/Passwort-Authentifizierung hinzufügen. Eingeloggte Benutzer haben unbegrenzte Analysen, Gäste behalten das 5-Analyse-Limit.
 
-### Aktuelle Struktur
-- **Landing Page (`/`)**: Zeigt nur eine Vorschau von 10 hoch-relevanten Services, leitet bei "Analyse starten" zur Auth-Seite weiter
-- **Dashboard (`/app`)**: Vollständige Funktionalität mit Service-Auswahl, AI-Analyse, Export
+### Änderungen
 
-### Zu übertragende Komponenten
-1. Service-Auswahl mit Suche, Kategorien und Relevanz-Filter
-2. ServiceCard mit Quick-Summary (Perplexity)
-3. AI-Analyse (Step 2) mit Perplexity Full-Basis-Analyse
-4. Export-Funktion (Step 3)
+**1. Neue Auth-Seite: `src/pages/Auth.tsx`**
+- Login- und Registrierungsformular (Toggle zwischen beiden)
+- E-Mail + Passwort Felder
+- Passwort-Reset-Link
+- Redirect zurück zur Landing Page nach Login
 
-## Implementierungs-Plan
+**2. Neue Passwort-Reset-Seite: `src/pages/ResetPassword.tsx`**
+- Formular zum Setzen eines neuen Passworts
+- Prüft `type=recovery` im URL-Hash
 
-### 1. Usage-Tracking für anonyme Besucher
-**Neuer Hook: `src/hooks/use-guest-usage.ts`**
+**3. Neuer Auth-Hook: `src/hooks/useAuth.tsx`**
+- Context Provider mit `onAuthStateChange` Listener
+- Stellt `user`, `session`, `signOut`, `isAuthenticated` bereit
+- Wraps um den Supabase Auth Client
 
-Speichert die Anzahl durchgeführter Analysen im localStorage:
-```text
-Funktionen:
-- getGuestAnalysisCount(): number
-- incrementGuestAnalysisCount(): void
-- hasReachedGuestLimit(): boolean (Limit = 2)
-- resetGuestUsage(): void (für Tests)
-```
+**4. Route-Erweiterung: `src/App.tsx`**
+- `AuthProvider` als Wrapper hinzufügen
+- Route `/auth` für Login/Register
+- Route `/reset-password` für Passwort-Reset
 
-### 2. Landing Page erweitern
-**Datei: `src/pages/Landing.tsx`**
+**5. Landing Page anpassen: `src/pages/Landing.tsx`**
+- Header: Login/Logout Button basierend auf Auth-Status
+- Analyse-Limit nur für Gäste prüfen (`!isAuthenticated`)
+- GuestUsageBanner nur für nicht-eingeloggte User anzeigen
+- GuestLimitDialog nur für nicht-eingeloggte User
 
-Änderungen:
-- Import der notwendigen Komponenten und Hooks aus Index.tsx
-- Hinzufügen des 3-Schritt-Workflows (Service-Auswahl → Analyse → Export)
-- Integration von Suche, Kategorien und Relevanz-Filter
-- Anzeige des Guest-Usage-Status (z.B. "1 von 2 kostenlosen Analysen verwendet")
+**6. Übersetzungen: `src/hooks/useLanguage.tsx`**
+- Keys für Auth-Formulare (Login, Register, E-Mail, Passwort, etc.)
 
-### 3. Analyse-Limit-Dialog
-**Neue Komponente: `src/components/GuestLimitDialog.tsx`**
+### Keine DB-Änderungen nötig
+- `auth.users` wird von der Authentifizierung automatisch verwaltet
+- Keine Profiltabelle nötig (nur Login ohne Profildaten)
+- Bestehende RLS-Policies und Tabellen bleiben unverändert
 
-Wird angezeigt, wenn ein Besucher das 2-Analyse-Limit erreicht:
-```text
-Inhalt:
-- Icon + Überschrift: "Kostenlose Analysen aufgebraucht"
-- Text: Erklärung der Vorteile eines Accounts
-- Buttons: "Jetzt registrieren" (primary), "Später" (outline)
-```
-
-### 4. Analyse-Prompt für Gäste
-Da der `useAnalysisPrompt` Hook einen authentifizierten User erwartet (RLS), wird für Gäste ein **Default-Prompt** verwendet:
-- Laden eines öffentlichen/Standard-Prompts
-- Keine Prompt-Bearbeitungsfunktion für Gäste
-
-### 5. Übersetzungen ergänzen
-**Datei: `src/hooks/useLanguage.tsx`**
-
-Neue Keys:
-```text
-"guest.usageCounter": "{{count}} of 2 free analyses used"
-"guest.limitReached": "Free analyses used up"
-"guest.limitDescription": "Register for free to continue..."
-"guest.registerNow": "Register now"
-"guest.maybeLater": "Maybe later"
-```
-
-## Workflow-Diagramm
+### Logik-Flow
 
 ```text
-Besucher auf Landing Page (/)
-        │
-        ▼
-┌─────────────────────────────┐
-│  Step 1: Service-Auswahl    │
-│  (Suche, Filter, 589+ SVCs) │
-└─────────────────────────────┘
-        │
-        ▼ [Service auswählen + "Analyse starten"]
-        │
-┌───────┴───────┐
-│ Limit-Check   │
-└───────┬───────┘
-        │
-   ┌────┴────┐
-   │< 2 ?    │
-   └────┬────┘
-    Ja  │  Nein
-   ┌────┘  └────┐
-   │            │
-   ▼            ▼
-┌──────────┐  ┌───────────────┐
-│ Step 2:  │  │ Limit-Dialog  │
-│ Analyse  │  │ → Auth-Page   │
-└──────────┘  └───────────────┘
-   │
-   ▼
-┌──────────┐
-│ Step 3:  │
-│ Export   │
-└──────────┘
-   │
-   ▼
-[Zähler +1 im localStorage]
+Besucher (nicht eingeloggt)
+├─ Sieht GuestUsageBanner (X/5)
+├─ Kann 5 Analysen durchführen
+├─ Nach Limit: GuestLimitDialog + Login-Button
+└─ Header zeigt "Sign In" Button
+
+Eingeloggt
+├─ Kein GuestUsageBanner
+├─ Unbegrenzte Analysen
+├─ Header zeigt "Logout" Button
+└─ Kein Limit-Check
 ```
 
-## Technische Details
+### Dateien
 
-### localStorage Key
-```text
-Key: "sap-basis-analyzer-guest-analyses"
-Value: { count: number, lastReset: timestamp }
-```
+| Aktion | Datei |
+|--------|-------|
+| NEU | `src/pages/Auth.tsx` |
+| NEU | `src/pages/ResetPassword.tsx` |
+| NEU | `src/hooks/useAuth.tsx` |
+| ÄNDERN | `src/App.tsx` |
+| ÄNDERN | `src/pages/Landing.tsx` |
+| ÄNDERN | `src/hooks/useLanguage.tsx` |
+| ÄNDERN | `src/components/GuestLimitDialog.tsx` |
 
-### Komponenten-Struktur
-```text
-Landing.tsx (erweitert)
-├── GuestUsageBanner (zeigt Zähler)
-├── GuestLimitDialog (Modal bei Limit)
-├── ServiceCard (unverändert)
-└── Analyse-Workflow (adaptiert von Index.tsx)
-    ├── Step 1: Service-Auswahl
-    ├── Step 2: AI-Analyse (ohne Prompt-Editor)
-    └── Step 3: Export/Summary
-```
-
-## Dateien die erstellt/geändert werden
-
-| Aktion | Datei | Beschreibung |
-|--------|-------|--------------|
-| NEU | `src/hooks/use-guest-usage.ts` | Hook für localStorage Usage-Tracking |
-| NEU | `src/components/GuestLimitDialog.tsx` | Modal-Dialog bei Limit |
-| NEU | `src/components/GuestUsageBanner.tsx` | Anzeige "X von 2 Analysen" |
-| ÄNDERN | `src/pages/Landing.tsx` | Vollständiger Workflow hinzufügen |
-| ÄNDERN | `src/hooks/useLanguage.tsx` | Neue Übersetzungen |
-
-## Sicherheitsaspekte
-
-- **Keine sensiblen Daten**: Der Zähler im localStorage kann manipuliert werden, was akzeptabel ist (kein echtes Billing)
-- **Perplexity API**: Wird auch für Gäste über Edge Function aufgerufen (keine API-Key-Exposition)
-- **Prompt**: Gäste sehen einen Standard-Prompt, können ihn aber nicht bearbeiten
-
-## Vorteile für Benutzer
-
-1. **Sofortiger Wert**: Besucher können die App direkt testen
-2. **Niedrige Einstiegshürde**: Kein Account nötig für ersten Eindruck
-3. **Klare Conversion**: Nach 2 Analysen sanfte Aufforderung zur Registrierung
