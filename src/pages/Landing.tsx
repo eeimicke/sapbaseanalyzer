@@ -141,6 +141,7 @@ const Landing = () => {
   const [fullBasisResult, setFullBasisResult] = useState<AnalysisResponse | null>(null);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [showServiceContext, setShowServiceContext] = useState(false);
+  const [showBatchExport, setShowBatchExport] = useState(false);
 
   // SEO Meta Tags
   useSEO({
