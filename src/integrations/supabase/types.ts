@@ -41,6 +41,89 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_export_items: {
+        Row: {
+          analysis_markdown: string | null
+          batch_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          service_file_name: string
+          service_name: string
+          service_technical_id: string
+          status: string
+        }
+        Insert: {
+          analysis_markdown?: string | null
+          batch_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          service_file_name: string
+          service_name: string
+          service_technical_id: string
+          status?: string
+        }
+        Update: {
+          analysis_markdown?: string | null
+          batch_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          service_file_name?: string
+          service_name?: string
+          service_technical_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_export_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_exports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_exports: {
+        Row: {
+          completed_services: number
+          created_at: string
+          error_message: string | null
+          failed_services: number
+          id: string
+          language: string
+          status: string
+          total_services: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_services?: number
+          created_at?: string
+          error_message?: string | null
+          failed_services?: number
+          id?: string
+          language?: string
+          status?: string
+          total_services?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_services?: number
+          created_at?: string
+          error_message?: string | null
+          failed_services?: number
+          id?: string
+          language?: string
+          status?: string
+          total_services?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       service_relevance_cache: {
         Row: {
           created_at: string | null

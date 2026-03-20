@@ -21,6 +21,7 @@ import { useBatchRelevance, type RelevanceLevel, relevanceColors } from "@/hooks
 import { ServiceCard } from "@/components/ServiceCard";
 import { GuestLimitDialog } from "@/components/GuestLimitDialog";
 import { GuestUsageBanner } from "@/components/GuestUsageBanner";
+import { BatchExportPanel } from "@/components/BatchExportPanel";
 import { useGuestUsage } from "@/hooks/use-guest-usage";
 import { useToast } from "@/hooks/use-toast";
 import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
@@ -140,6 +141,7 @@ const Landing = () => {
   const [fullBasisResult, setFullBasisResult] = useState<AnalysisResponse | null>(null);
   const [showSystemPrompt, setShowSystemPrompt] = useState(false);
   const [showServiceContext, setShowServiceContext] = useState(false);
+  const [showBatchExport, setShowBatchExport] = useState(false);
 
   // SEO Meta Tags
   useSEO({
@@ -605,6 +607,16 @@ const Landing = () => {
                 </div>
               )}
 
+              {/* Batch Export Panel */}
+              {showBatchExport && filteredServices.length > 0 && (
+                <div className="max-w-6xl mx-auto mb-6">
+                  <BatchExportPanel
+                    services={filteredServices}
+                    onClose={() => setShowBatchExport(false)}
+                  />
+                </div>
+              )}
+
               {/* Services Count & Pagination Info */}
               {!isLoadingServices && !isServicesError && filteredServices.length > 0 && (
                 <div className="flex items-center justify-between max-w-6xl mx-auto mb-4">
@@ -613,11 +625,24 @@ const Landing = () => {
                       ? `Zeige ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredServices.length)} von ${filteredServices.length} Services`
                       : `Showing ${(currentPage - 1) * ITEMS_PER_PAGE + 1}–${Math.min(currentPage * ITEMS_PER_PAGE, filteredServices.length)} of ${filteredServices.length} services`}
                   </p>
-                  {totalPages > 1 && (
-                    <p className="text-sm text-muted-foreground">
-                      {language === "de" ? `Seite ${currentPage} von ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {isAuthenticated && !showBatchExport && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowBatchExport(true)}
+                        className="text-xs h-8"
+                      >
+                        <FileCode className="w-3.5 h-3.5 mr-1.5" />
+                        {language === "de" ? "Batch-Export" : "Batch Export"}
+                      </Button>
+                    )}
+                    {totalPages > 1 && (
+                      <p className="text-sm text-muted-foreground">
+                        {language === "de" ? `Seite ${currentPage} von ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
 
