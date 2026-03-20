@@ -604,12 +604,14 @@ const Landing = () => {
                 </div>
               )}
 
-              {/* Services Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto">
+              {/* Services Masonry Grid */}
+              <div className="columns-1 md:columns-2 lg:columns-3 gap-4 max-w-6xl mx-auto [column-fill:balance]">
                 {isLoadingServices && (
                   <>
                     {[...Array(6)].map((_, i) => (
-                      <ServiceCardSkeleton key={i} />
+                      <div key={i} className="break-inside-avoid mb-4">
+                        <ServiceCardSkeleton />
+                      </div>
                     ))}
                   </>
                 )}
@@ -617,7 +619,7 @@ const Landing = () => {
                 {!isLoadingServices && !isServicesError && paginatedServices.map((service) => {
                   const rel = relevanceMap?.get(service.technicalId) ?? null;
                   return (
-                    <div key={service.technicalId} className="service-card-item h-full">
+                    <div key={service.technicalId} className="break-inside-avoid mb-4 service-card-item">
                       <ServiceCard
                         service={service}
                         isSelected={selectedService?.technicalId === service.technicalId}
