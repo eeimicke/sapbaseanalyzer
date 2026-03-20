@@ -256,8 +256,8 @@ const Landing = () => {
 
   // Handle service selection and proceed to analysis
   const handleProceedToAnalysis = (service: ServiceInventoryItem, details: ServiceDetails) => {
-    // Check guest limit
-    if (hasReachedGuestLimit()) {
+    // Only check guest limit for unauthenticated users
+    if (!isAuthenticated && hasReachedGuestLimit()) {
       setShowLimitDialog(true);
       return;
     }
