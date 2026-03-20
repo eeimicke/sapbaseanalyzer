@@ -292,8 +292,8 @@ const Landing = () => {
       setFullBasisResult(result);
       setAnalysisComplete(true);
       
-      // Increment guest counter on successful analysis
-      if (result.success) {
+      // Increment guest counter on successful analysis (only for guests)
+      if (result.success && !isAuthenticated) {
         incrementGuestAnalysisCount();
         toast({
           title: t("app.analysisComplete"),
