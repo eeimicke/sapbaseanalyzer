@@ -318,6 +318,15 @@ const translations = {
     "auth.confirmationSent": "Wir haben Ihnen einen Bestätigungslink gesendet an",
     "auth.confirmToContinue": "Bitte bestätigen Sie Ihre E-Mail-Adresse um fortzufahren.",
     "auth.backToSignIn": "Zurück zur Anmeldung",
+    "auth.forgotPassword": "Passwort vergessen?",
+    "auth.newPassword": "Neues Passwort setzen",
+    "auth.enterNewPassword": "Geben Sie Ihr neues Passwort ein.",
+    "auth.confirmPassword": "Passwort bestätigen",
+    "auth.updatePassword": "Passwort aktualisieren",
+    "auth.updating": "Wird aktualisiert...",
+    "auth.passwordUpdated": "Passwort aktualisiert",
+    "auth.redirecting": "Sie werden weitergeleitet...",
+    "auth.passwordMismatch": "Die Passwörter stimmen nicht überein.",
     
     // App/Index Page - Steps
     "app.step1.title": "Service auswählen",
