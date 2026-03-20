@@ -21,6 +21,7 @@ import { useBatchRelevance, type RelevanceLevel, relevanceColors } from "@/hooks
 import { ServiceCard } from "@/components/ServiceCard";
 import { GuestLimitDialog } from "@/components/GuestLimitDialog";
 import { GuestUsageBanner } from "@/components/GuestUsageBanner";
+import { BatchExportPanel } from "@/components/BatchExportPanel";
 import { useGuestUsage } from "@/hooks/use-guest-usage";
 import { useToast } from "@/hooks/use-toast";
 import { perplexityApi, type AnalysisResponse } from "@/lib/api/perplexity";
