@@ -362,10 +362,13 @@ const Landing = () => {
               </div>
             </div>
             
-            {/* Center: Guest Usage Banner */}
-            <div className="hidden md:flex flex-1 justify-center">
-              <GuestUsageBanner />
-            </div>
+            {/* Center: Guest Usage Banner (only for guests) */}
+            {!isAuthenticated && (
+              <div className="hidden md:flex flex-1 justify-center">
+                <GuestUsageBanner />
+              </div>
+            )}
+            {isAuthenticated && <div className="hidden md:flex flex-1" />}
             
             {/* Right: Actions */}
             <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0 flex-1 justify-end">
@@ -382,20 +385,32 @@ const Landing = () => {
                 <Github className="w-3 h-3 mr-1" />
                 {t("header.openSource")}
               </Badge>
-              <Button 
-                size="sm" 
-                className="bg-[#0A66C2] hover:bg-[#004182] text-white h-8 text-xs sm:text-sm px-2 sm:px-4"
-                onClick={() => setShowLimitDialog(true)}
-              >
-                <Linkedin className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">{language === "de" ? "Kontakt" : "Contact"}</span>
-              </Button>
+              {isAuthenticated ? (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-8 text-xs sm:text-sm px-2 sm:px-4"
+                  onClick={() => signOut()}
+                >
+                  <span>{t("header.logout")}</span>
+                </Button>
+              ) : (
+                <Button 
+                  size="sm" 
+                  className="h-8 text-xs sm:text-sm px-2 sm:px-4"
+                  onClick={() => navigate("/auth")}
+                >
+                  <span>{t("header.login")}</span>
+                </Button>
+              )}
             </div>
             
-            {/* Mobile: Guest Usage Banner */}
-            <div className="flex md:hidden justify-center pb-2">
-              <GuestUsageBanner />
-            </div>
+            {/* Mobile: Guest Usage Banner (only for guests) */}
+            {!isAuthenticated && (
+              <div className="flex md:hidden justify-center pb-2">
+                <GuestUsageBanner />
+              </div>
+            )}
           </div>
         </div>
       </header>
