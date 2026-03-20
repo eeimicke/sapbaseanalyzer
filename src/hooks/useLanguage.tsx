@@ -103,6 +103,15 @@ const translations = {
     "auth.confirmationSent": "We have sent you a confirmation link to",
     "auth.confirmToContinue": "Please confirm your email address to continue.",
     "auth.backToSignIn": "Back to sign in",
+    "auth.forgotPassword": "Forgot password?",
+    "auth.newPassword": "Set New Password",
+    "auth.enterNewPassword": "Enter your new password below.",
+    "auth.confirmPassword": "Confirm Password",
+    "auth.updatePassword": "Update Password",
+    "auth.updating": "Updating...",
+    "auth.passwordUpdated": "Password Updated",
+    "auth.redirecting": "Redirecting you to the app...",
+    "auth.passwordMismatch": "Passwords do not match.",
     
     // App/Index Page - Steps
     "app.step1.title": "Select Service",
