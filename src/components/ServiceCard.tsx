@@ -128,12 +128,12 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
             <Badge variant="outline" className="text-xs">
               {service.category || "Service"}
             </Badge>
-                <RelevanceBadge 
-                  relevance={relevance?.relevance} 
-                  reason={relevance?.reason}
-                  isLoading={isLoadingRelevance}
-                  onReclassify={reclassify}
-                />
+            <RelevanceBadge 
+              relevance={relevance?.relevance} 
+              reason={relevance?.reason}
+              isLoading={isLoadingRelevance}
+              onReclassify={reclassify}
+            />
           </div>
           <div className="flex items-center gap-2">
             <a
@@ -163,37 +163,9 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
           <code className="bg-muted px-2 py-1 rounded text-[10px]">{service.technicalId}</code>
         </div>
 
-        {/* Links Preview (nicht ausgewählt) */}
-        {!isSelected && (
-          isLoadingDetails ? (
-            <div className="flex gap-1 flex-wrap">
-              <div className="h-5 w-20 bg-muted animate-pulse rounded" />
-              <div className="h-5 w-16 bg-muted animate-pulse rounded" />
-            </div>
-          ) : classifications.length > 0 ? (
-          <div className="flex gap-1 flex-wrap">
-              {classifications.map((classification) => {
-                const Icon = classificationIcons[classification] || Link2;
-                const count = groupedLinks[classification]?.length || 0;
-                return (
-                  <Badge
-                    key={classification}
-                    variant="secondary"
-                    className="text-[10px] px-1.5 py-0 gap-1"
-                  >
-                    <Icon className="w-3 h-3" />
-                    {classification} ({count})
-                  </Badge>
-                );
-              })}
-            </div>
-          ) : null
-        )}
-
-        {/* Vollständige Link-Liste + Perplexity Summary (ausgewählt) */}
-        {isSelected && (
-          <div className="space-y-3 pt-2 border-t border-border/50">
-            {/* Quick AI Summary */}
+        <div className="space-y-3 pt-2 border-t border-border/50 flex-1 flex flex-col">
+          {/* Quick AI Summary - only when selected */}
+          {isSelected && (
             <div className="space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
                 <Sparkles className="w-3.5 h-3.5" />
@@ -212,62 +184,64 @@ export function ServiceCard({ service, isSelected, onSelect, onProceedToAnalysis
                 ) : null}
               </div>
             </div>
+          )}
 
-            {/* Links */}
-            {isLoadingDetails ? (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                {loadingLinksText}
-              </div>
-            ) : classifications.length > 0 ? (
-              classifications.map((classification) => {
-                const Icon = classificationIcons[classification] || Link2;
-                const links = groupedLinks[classification] || [];
-                return (
-                  <div key={classification} className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                      <Icon className="w-3.5 h-3.5" />
-                      {classification}
-                    </div>
-                    <div className="space-y-1 pl-5">
-                      {links.map((link, idx) => (
-                        <a
-                          key={idx}
-                          href={link.value}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-1.5 text-xs text-primary hover:underline truncate"
-                          title={link.value}
-                        >
-                          <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{link.text || link.value}</span>
-                        </a>
-                      ))}
-                    </div>
+          {/* Links - always visible */}
+          {isLoadingDetails ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              {loadingLinksText}
+            </div>
+          ) : classifications.length > 0 ? (
+            classifications.map((classification) => {
+              const Icon = classificationIcons[classification] || Link2;
+              const links = groupedLinks[classification] || [];
+              return (
+                <div key={classification} className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <Icon className="w-3.5 h-3.5" />
+                    {classification}
                   </div>
-                );
-              })
-            ) : (
-              <p className="text-xs text-muted-foreground">{noLinksText}</p>
-            )}
+                  <div className="space-y-1 pl-5">
+                    {links.map((link, idx) => (
+                      <a
+                        key={idx}
+                        href={link.value}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 text-xs text-primary hover:underline truncate"
+                        title={link.value}
+                      >
+                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{link.text || link.value}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-xs text-muted-foreground">{noLinksText}</p>
+          )}
 
-            {/* Proceed Button */}
-            {serviceDetails && onProceedToAnalysis && (
+          {/* Proceed Button - always visible */}
+          {serviceDetails && onProceedToAnalysis && (
+            <div className="mt-auto pt-3">
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   onProceedToAnalysis(service, serviceDetails);
                 }}
-                className="w-full mt-3 gap-2 nagarro-gradient text-background nagarro-glow"
+                className="w-full gap-2 nagarro-gradient text-background nagarro-glow"
                 size="sm"
               >
                 {t("serviceCard.proceedToAnalysis")}
                 <ChevronRight className="w-4 h-4" />
               </Button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
