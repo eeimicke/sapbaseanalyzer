@@ -1,4 +1,5 @@
 import { useLanguage } from "@/hooks/useLanguage";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,7 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Linkedin, MessageCircle } from "lucide-react";
+import { Linkedin, MessageCircle, LogIn } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface GuestLimitDialogProps {
   open: boolean;
@@ -18,6 +20,7 @@ interface GuestLimitDialogProps {
 
 export function GuestLimitDialog({ open, onOpenChange }: GuestLimitDialogProps) {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -28,17 +31,30 @@ export function GuestLimitDialog({ open, onOpenChange }: GuestLimitDialogProps) 
               <MessageCircle className="w-6 h-6 text-primary" />
             </div>
             <AlertDialogTitle className="text-xl">
-              {language === "de" ? "Kontakt aufnehmen" : "Get in Touch"}
+              {t("guest.limitReached")}
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-base">
             {language === "de" 
-              ? "Für weitere Analysen und Fragen kontaktieren Sie mich gerne über LinkedIn."
-              : "For more analyses and questions, please contact me via LinkedIn."}
+              ? "Melden Sie sich an für unbegrenzte Analysen, oder kontaktieren Sie mich über LinkedIn."
+              : "Sign in for unlimited analyses, or contact me via LinkedIn."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="py-4">
+        <div className="py-4 space-y-3">
+          {/* Sign In option */}
+          <Button
+            className="w-full"
+            onClick={() => {
+              onOpenChange(false);
+              navigate("/auth");
+            }}
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            {language === "de" ? "Anmelden / Registrieren" : "Sign In / Register"}
+          </Button>
+
+          {/* LinkedIn option */}
           <div className="flex items-center gap-3 text-sm p-4 rounded-lg bg-muted/50">
             <div className="w-10 h-10 rounded-lg bg-[#0A66C2] flex items-center justify-center flex-shrink-0">
               <Linkedin className="w-5 h-5 text-white" />
