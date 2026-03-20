@@ -520,6 +520,19 @@ ${labels.researchInstruction}`;
 
     console.log(`Analyzing ${serviceName} for category: ${category} in language: ${language}`);
 
+    // SAP-specific domain filter for focused search results
+    const sapDomainFilter = [
+      'help.sap.com',
+      'community.sap.com',
+      'blogs.sap.com',
+      'discovery-center.cloud.sap',
+      'api.sap.com',
+      'learning.sap.com',
+      'support.sap.com',
+      'github.com/SAP-samples',
+      'github.com/SAP',
+    ];
+
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -534,6 +547,7 @@ ${labels.researchInstruction}`;
         ],
         max_tokens: maxTokens,
         temperature: 0.3,
+        search_domain_filter: sapDomainFilter,
       }),
     });
 
