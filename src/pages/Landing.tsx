@@ -110,6 +110,7 @@ Analysiere den bereitgestellten Service und erstelle eine umfassende Basis-Dokum
 const Landing = () => {
   const { isDark, toggleTheme } = useTheme();
   const { t, language } = useLanguage();
+  const { isAuthenticated, signOut, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
