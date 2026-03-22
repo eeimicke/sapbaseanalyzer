@@ -540,7 +540,7 @@ ${labels.researchInstruction}`;
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Perplexity API error:', data);
+      console.error('AI API error:', data);
       return new Response(
         JSON.stringify({ success: false, error: data.error?.message || `Request failed with status ${response.status}` }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -548,7 +548,6 @@ ${labels.researchInstruction}`;
     }
 
     const analysisContent = data.choices?.[0]?.message?.content || (language === 'en' ? 'No analysis available.' : 'Keine Analyse verfügbar.');
-    const citations = data.citations || [];
 
     console.log(`Analysis complete for ${category}`);
 
@@ -558,8 +557,8 @@ ${labels.researchInstruction}`;
         data: {
           category,
           content: analysisContent,
-          citations,
-          model: data.model,
+          citations: [],
+          model: data.model || 'gemini-2.5-flash',
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
