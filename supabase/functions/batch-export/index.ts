@@ -91,26 +91,20 @@ ${plans || 'Keine Plans verfügbar.'}
 ---
 Bitte analysiere diesen Service gemäß der Struktur im System-Prompt.`;
 
-  const sapDomainFilter = [
-    'help.sap.com', 'community.sap.com', 'blogs.sap.com',
-    'discovery-center.cloud.sap', 'api.sap.com', 'support.sap.com',
-  ];
-
-  const response = await fetch('https://api.perplexity.ai/chat/completions', {
+  const response = await fetch('https://ai-gateway.lovable.dev/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'sonar',
+      model: 'google/gemini-2.5-flash',
       messages: [
         { role: 'system', content: prompt },
         { role: 'user', content: userMessage },
       ],
       max_tokens: 4000,
       temperature: 0.3,
-      search_domain_filter: sapDomainFilter,
     }),
   });
 
