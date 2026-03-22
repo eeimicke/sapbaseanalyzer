@@ -437,11 +437,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
-      console.error('PERPLEXITY_API_KEY not configured');
+      console.error('LOVABLE_API_KEY not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'Perplexity connector not configured' }),
+        JSON.stringify({ success: false, error: 'AI API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -520,41 +520,27 @@ ${labels.researchInstruction}`;
 
     console.log(`Analyzing ${serviceName} for category: ${category} in language: ${language}`);
 
-    // SAP-specific domain filter for focused search results
-    const sapDomainFilter = [
-      'help.sap.com',
-      'community.sap.com',
-      'blogs.sap.com',
-      'discovery-center.cloud.sap',
-      'api.sap.com',
-      'learning.sap.com',
-      'support.sap.com',
-      'github.com/SAP-samples',
-      'github.com/SAP',
-    ];
-
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    const response = await fetch('https://ai-gateway.lovable.dev/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'sonar',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
         max_tokens: maxTokens,
         temperature: 0.3,
-        search_domain_filter: sapDomainFilter,
       }),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Perplexity API error:', data);
+      console.error('AI API error:', data);
       return new Response(
         JSON.stringify({ success: false, error: data.error?.message || `Request failed with status ${response.status}` }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -562,7 +548,6 @@ ${labels.researchInstruction}`;
     }
 
     const analysisContent = data.choices?.[0]?.message?.content || (language === 'en' ? 'No analysis available.' : 'Keine Analyse verfügbar.');
-    const citations = data.citations || [];
 
     console.log(`Analysis complete for ${category}`);
 
@@ -572,8 +557,8 @@ ${labels.researchInstruction}`;
         data: {
           category,
           content: analysisContent,
-          citations,
-          model: data.model,
+          citations: [],
+          model: data.model || 'gemini-2.5-flash',
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
