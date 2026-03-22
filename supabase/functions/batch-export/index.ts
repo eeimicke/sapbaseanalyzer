@@ -110,7 +110,7 @@ Bitte analysiere diesen Service gemäß der Struktur im System-Prompt.`;
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error?.message || `Perplexity API error: ${response.status}`);
+    throw new Error(data.error?.message || `AI API error: ${response.status}`);
   }
 
   const content = data.choices?.[0]?.message?.content || 'Keine Analyse verfügbar.';
