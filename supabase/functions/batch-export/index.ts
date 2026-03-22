@@ -59,8 +59,8 @@ async function analyzeService(
   fileName: string,
   language: string
 ) {
-  const apiKey = Deno.env.get('PERPLEXITY_API_KEY');
-  if (!apiKey) throw new Error('PERPLEXITY_API_KEY not configured');
+  const apiKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!apiKey) throw new Error('LOVABLE_API_KEY not configured');
 
   // Build context
   const links = (serviceDetails?.links || [])
