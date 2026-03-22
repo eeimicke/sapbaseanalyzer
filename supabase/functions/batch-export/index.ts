@@ -91,7 +91,7 @@ ${plans || 'Keine Plans verfügbar.'}
 ---
 Bitte analysiere diesen Service gemäß der Struktur im System-Prompt.`;
 
-  const response = await fetch('https://ai-gateway.lovable.dev/chat/completions', {
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
